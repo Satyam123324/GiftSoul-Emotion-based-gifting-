@@ -1,165 +1,268 @@
-'use client'
-import Link from 'next/link'
-import { useState } from 'react'
+// src/app/api/enquiries/route.js
+// Saves enquiry to Supabase + sends email to creator via Resend (free tier)
 
-const STEPS = ['Identity','Craft','Story','Preview']
-const CRAFTS = ['Candles','Jewellery','Pottery','Macramé','Greeting cards','Gift hampers','Paintings','Crochet & knit','Resin art','Skincare','Stationery','Personalised gifts']
-const EMOTIONS = ['Love & romance','Grief & comfort','Celebration','Gratitude','New beginnings','Friendship','Nostalgia','Self-care','Achievement','Apology','Family bonding']
+export async function POST(request) {
+  try {
+    const body = await request.json()
 
-export default function CreatorRegister() {
-  const [step, setStep] = useState(0)
-  const [form, setForm] = useState({fname:'',lname:'',shop:'',city:'',tagline:'',bio:'',instagram:'',crafts:[],emotions:[]})
-  const [submitted, setSubmitted] = useState(false)
+    const {
+      product_id,
+      creator_id,
+      creator_email,   // creator's email — fetch from DB or pass from frontend
+      creator_name,
+      product_name,
+      buyer_name,
+      buyer_email,
+      buyer_phone,
+      message,
+      personalisation_note,
+      quantity = 1,
+    } = body
 
-  const update = (k,v) => setForm(f => ({...f,[k]:v}))
-  const toggleArr = (k,v) => setForm(f => ({...f,[k]: f[k].includes(v) ? f[k].filter(x=>x!==v) : [...f[k],v]}))
+    // ── 1. Validate required fields ───────────────────────
+    if (!buyer_name || !buyer_email || !message) {
+      return Response.json(
+        { error: 'Name, email and message are required' },
+        { status: 400 }
+      )
+    }
 
-  const inputStyle = {width:'100%',border:'1px solid #D9CDB8',borderRadius:'8px',padding:'.65rem 1rem',fontFamily:'DM Sans, sans-serif',fontSize:'.9rem',background:'white',color:'#3D2B1F',outline:'none'}
-  const tagStyle = (active) => ({padding:'.35rem 1rem',borderRadius:'20px',fontSize:'.78rem',border: active ? '1px solid #B5622A' : '1px solid #D9CDB8',background: active ? 'rgba(181,98,42,.08)' : 'transparent',color: active ? '#B5622A' : '#7A6A5A',cursor:'pointer',transition:'all .15s',fontFamily:'DM Sans, sans-serif'})
+    // ── 2. Save enquiry to Supabase ───────────────────────
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (submitted) return (
-    <div style={{minHeight:'100vh',background:'#F7F3EE',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:'1.5rem',padding:'2rem',textAlign:'center'}}>
-      <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'#4A6741',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.5rem',color:'white'}}>✓</div>
-      <h1 style={{fontFamily:'Cormorant Garamond, serif',fontSize:'2.5rem',fontWeight:300,color:'#3D2B1F'}}>You&apos;re all set, {form.fname}!</h1>
-      <p style={{fontSize:'1rem',color:'#7A6A5A',maxWidth:'400px',lineHeight:1.7}}>Your profile is under review. We&apos;ll email you within 24 hours when you&apos;re live on GiftSoul.</p>
-      <Link href="/" style={{padding:'.75rem 2rem',background:'#B5622A',color:'white',borderRadius:'2rem',textDecoration:'none',fontSize:'.85rem'}}>Back to GiftSoul →</Link>
+    let savedEnquiry = null
+
+    if (supabaseUrl && supabaseKey) {
+      const dbRes = await fetch(`${supabaseUrl}/rest/v1/enquiries`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({
+          product_id: product_id || null,
+          creator_id: creator_id || null,
+          buyer_name,
+          buyer_email,
+          buyer_phone: buyer_phone || null,
+          message,
+          personalisation_note: personalisation_note || null,
+          quantity,
+          status: 'new',
+        }),
+      })
+
+      const dbData = await dbRes.json()
+      if (Array.isArray(dbData) && dbData.length > 0) {
+        savedEnquiry = dbData[0]
+      }
+    }
+
+    // ── 3. Send email via Resend ──────────────────────────
+    const resendKey = process.env.RESEND_API_KEY
+    let emailSent = false
+
+    if (resendKey && creator_email) {
+      // Email TO creator
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'GiftSoul <noreply@giftsoul.in>',
+          to: [creator_email],
+          reply_to: buyer_email,
+          subject: `✨ New enquiry for "${product_name || 'your product'}" — GiftSoul`,
+          html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+</head>
+<body style="margin:0;padding:0;background:#F7F3EE;font-family:'DM Sans',Arial,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #D9CDB8;">
+    
+    <!-- Header -->
+    <div style="background:#3D2B1F;padding:32px 40px;text-align:center;">
+      <p style="font-family:Georgia,serif;font-size:28px;font-weight:300;color:#F7F3EE;margin:0;">
+        Gift<em style="font-style:italic;color:#D4856A;">Soul</em>
+      </p>
+      <p style="font-size:13px;color:rgba(247,243,238,.5);margin:8px 0 0;letter-spacing:.1em;text-transform:uppercase;">New enquiry received</p>
     </div>
-  )
 
-  return (
-    <div style={{minHeight:'100vh',background:'#F7F3EE'}}>
-      <nav style={{position:'fixed',top:0,left:0,right:0,height:'70px',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 4rem',zIndex:500,background:'rgba(247,243,238,.95)',backdropFilter:'blur(16px)',boxShadow:'0 1px 0 #D9CDB8'}}>
-        <Link href="/" style={{fontFamily:'Cormorant Garamond, serif',fontSize:'1.65rem',fontWeight:400,color:'#3D2B1F',textDecoration:'none'}}>Gift<em style={{fontStyle:'italic',color:'#B5622A'}}>Soul</em></Link>
-      </nav>
+    <!-- Body -->
+    <div style="padding:36px 40px;">
+      <p style="font-family:Georgia,serif;font-size:22px;font-weight:300;color:#3D2B1F;margin:0 0 8px;">
+        Hi ${creator_name || 'there'}! ✨
+      </p>
+      <p style="font-size:15px;color:#7A6A5A;line-height:1.7;margin:0 0 24px;">
+        Someone is interested in your work on GiftSoul. Here are the details:
+      </p>
 
-      <div style={{maxWidth:'680px',margin:'0 auto',padding:'calc(70px + 3rem) 2rem 4rem'}}>
-        <div style={{textAlign:'center',marginBottom:'2.5rem'}}>
-          <p style={{fontSize:'.72rem',letterSpacing:'.18em',textTransform:'uppercase',color:'#B5622A',marginBottom:'.5rem'}}>GiftSoul — Creator Studio</p>
-          <h1 style={{fontFamily:'Cormorant Garamond, serif',fontSize:'2.5rem',fontWeight:300,color:'#3D2B1F',marginBottom:'.4rem'}}>Set up your maker profile</h1>
-          <p style={{fontSize:'.9rem',color:'#7A6A5A'}}>Let gift-seekers discover your handcrafted creations</p>
+      <!-- Enquiry box -->
+      <div style="background:#F7F3EE;border-radius:14px;padding:24px;margin-bottom:24px;border:1px solid #D9CDB8;">
+        <p style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#C4A882;margin:0 0 16px;">Enquiry details</p>
+        
+        ${product_name ? `
+        <div style="margin-bottom:12px;">
+          <span style="font-size:11px;color:#7A6A5A;display:block;margin-bottom:2px;">Gift enquired about</span>
+          <span style="font-size:15px;font-weight:500;color:#3D2B1F;">${product_name}</span>
+        </div>` : ''}
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+          <div>
+            <span style="font-size:11px;color:#7A6A5A;display:block;margin-bottom:2px;">From</span>
+            <span style="font-size:15px;font-weight:500;color:#3D2B1F;">${buyer_name}</span>
+          </div>
+          <div>
+            <span style="font-size:11px;color:#7A6A5A;display:block;margin-bottom:2px;">Quantity</span>
+            <span style="font-size:15px;font-weight:500;color:#3D2B1F;">${quantity}</span>
+          </div>
         </div>
 
-        {/* STEPPER */}
-        <div style={{display:'flex',alignItems:'center',marginBottom:'2rem'}}>
-          {STEPS.map((s,i) => (
-            <div key={s} style={{display:'flex',alignItems:'center',flex: i < STEPS.length-1 ? 1 : 'none'}}>
-              <div style={{display:'flex',alignItems:'center',gap:'8px',whiteSpace:'nowrap'}}>
-                <div style={{width:'28px',height:'28px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:500,background: i < step ? '#0F6E56' : i === step ? '#B5622A' : 'white',color: i <= step ? 'white' : '#7A6A5A',border: i > step ? '1px solid #D9CDB8' : 'none',flexShrink:0}}>
-                  {i < step ? '✓' : i+1}
-                </div>
-                <span style={{fontSize:'12px',color: i === step ? '#B5622A' : '#7A6A5A',fontWeight: i === step ? 500 : 400}}>{s}</span>
-              </div>
-              {i < STEPS.length-1 && <div style={{flex:1,height:'1px',background:'#D9CDB8',margin:'0 8px'}}></div>}
-            </div>
-          ))}
+        <div style="background:white;border-radius:10px;padding:16px;border:1px solid #D9CDB8;">
+          <span style="font-size:11px;color:#7A6A5A;display:block;margin-bottom:6px;">Their message</span>
+          <p style="font-family:Georgia,serif;font-size:15px;color:#3D2B1F;font-style:italic;line-height:1.65;margin:0;">"${message}"</p>
         </div>
 
-        {/* STEP 0 — Identity */}
-        {step === 0 && (
-          <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.75rem'}}>
-            <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'1.25rem'}}>Your identity</p>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
-              <div><label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>First name</label><input style={inputStyle} value={form.fname} onChange={e=>update('fname',e.target.value)} placeholder="Sneha"/></div>
-              <div><label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>Last name</label><input style={inputStyle} value={form.lname} onChange={e=>update('lname',e.target.value)} placeholder="Patel"/></div>
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1rem'}}>
-              <div><label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>Shop / Studio name</label><input style={inputStyle} value={form.shop} onChange={e=>update('shop',e.target.value)} placeholder="Sneha's Nook"/></div>
-              <div><label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>City</label><input style={inputStyle} value={form.city} onChange={e=>update('city',e.target.value)} placeholder="Jaipur, Rajasthan"/></div>
-            </div>
-            <div style={{marginBottom:'1rem'}}><label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>Tagline</label><input style={inputStyle} value={form.tagline} onChange={e=>update('tagline',e.target.value)} placeholder="Hand-poured soy candles with love from Rajasthan"/></div>
-          </div>
-        )}
-
-        {/* STEP 1 — Craft */}
-        {step === 1 && (
-          <div>
-            <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.75rem',marginBottom:'1rem'}}>
-              <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'1rem'}}>What do you make?</p>
-              <div style={{display:'flex',flexWrap:'wrap',gap:'.6rem'}}>
-                {CRAFTS.map(c => <button key={c} onClick={()=>toggleArr('crafts',c)} style={tagStyle(form.crafts.includes(c))}>{c}</button>)}
-              </div>
-            </div>
-            <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.75rem'}}>
-              <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'.4rem'}}>Emotions your gifts suit</p>
-              <p style={{fontSize:'12px',color:'#7A6A5A',marginBottom:'1rem'}}>Our AI uses this to recommend your work when someone shares a heartfelt story.</p>
-              <div style={{display:'flex',flexWrap:'wrap',gap:'.6rem'}}>
-                {EMOTIONS.map(e => <button key={e} onClick={()=>toggleArr('emotions',e)} style={tagStyle(form.emotions.includes(e))}>{e}</button>)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2 — Story */}
-        {step === 2 && (
-          <div>
-            <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.75rem',marginBottom:'1rem'}}>
-              <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'1rem'}}>Your maker story</p>
-              <div style={{marginBottom:'1rem'}}>
-                <label style={{fontSize:'13px',color:'#7A6A5A',display:'block',marginBottom:'5px'}}>About you & your craft</label>
-                <textarea rows={5} style={{...inputStyle,resize:'vertical',lineHeight:1.6}} value={form.bio} onChange={e=>update('bio',e.target.value)} placeholder="I started making candles in my kitchen during lockdown as a way to cope with stress..."/>
-                <p style={{fontSize:'11px',color:'#7A6A5A',marginTop:'4px'}}>This is what gift-buyers will read. Write from the heart — stories sell.</p>
-              </div>
-            </div>
-            <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.75rem'}}>
-              <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'1rem'}}>Social & shop links</p>
-              {[['Instagram','https://instagram.com/yourhandle'],['WhatsApp','Your WhatsApp business number']].map(([label,ph]) => (
-                <div key={label} style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px'}}>
-                  <div style={{width:'32px',height:'32px',borderRadius:'8px',border:'1px solid #D9CDB8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',color:'#7A6A5A',flexShrink:0}}>{label.slice(0,2)}</div>
-                  <input style={{...inputStyle}} placeholder={ph}/>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3 — Preview */}
-        {step === 3 && (
-          <div>
-            <div style={{background:'white',border:'1px solid #D9CDB8',borderRadius:'20px',padding:'1.5rem',marginBottom:'1rem'}}>
-              <p style={{fontSize:'.7rem',letterSpacing:'.1em',textTransform:'uppercase',color:'#7A6A5A',marginBottom:'1.25rem'}}>Profile preview</p>
-              <div style={{background:'#EDE6DA',borderRadius:'16px',padding:'1.5rem'}}>
-                <div style={{display:'flex',alignItems:'center',gap:'14px',marginBottom:'1rem'}}>
-                  <div style={{width:'56px',height:'56px',borderRadius:'50%',background:'#FFF3E0',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Cormorant Garamond, serif',fontSize:'1.3rem',color:'#3D2B1F'}}>
-                    {(form.fname[0]||'S').toUpperCase()}{(form.lname[0]||'P').toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{fontFamily:'Cormorant Garamond, serif',fontSize:'1.2rem',color:'#3D2B1F'}}>{form.fname||'Sneha'} {form.lname||'Patel'}</div>
-                    <div style={{fontSize:'.78rem',color:'#7A6A5A'}}>{form.shop||"Sneha's Nook"} · {form.city||'Jaipur'}</div>
-                  </div>
-                </div>
-                <p style={{fontSize:'.85rem',color:'#7A6A5A',marginBottom:'1rem',lineHeight:1.6}}>{form.tagline||'Hand-poured soy candles with love from Rajasthan'}</p>
-                <div style={{display:'flex',flexWrap:'wrap',gap:'.5rem'}}>
-                  {(form.crafts.length ? form.crafts : ['Candles']).slice(0,4).map(t => (
-                    <span key={t} style={{fontSize:'.7rem',padding:'.22rem .7rem',borderRadius:'2rem',background:'rgba(181,98,42,.08)',border:'1px solid rgba(181,98,42,.2)',color:'#B5622A'}}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div style={{background:'#E1F5EE',border:'1px solid #5DCAA5',borderRadius:'16px',padding:'1rem 1.25rem',display:'flex',alignItems:'center',gap:'12px',marginBottom:'1rem'}}>
-              <div style={{width:'32px',height:'32px',borderRadius:'50%',background:'#1D9E75',display:'flex',alignItems:'center',justifyContent:'center',color:'white',flexShrink:0}}>✓</div>
-              <div>
-                <p style={{fontWeight:500,fontSize:'14px',color:'#085041'}}>You&apos;re all set!</p>
-                <p style={{fontSize:'12px',color:'#0F6E56'}}>Our team reviews your profile within 24hrs. You&apos;ll get an email when you&apos;re live.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* FOOTER BUTTONS */}
-        <div style={{display:'flex',justifyContent:'space-between',marginTop:'1.5rem'}}>
-          <button onClick={() => setStep(s => Math.max(0,s-1))} style={{padding:'.7rem 1.6rem',border:'1px solid #D9CDB8',borderRadius:'2rem',background:'white',color:'#3D2B1F',cursor: step===0 ? 'not-allowed' : 'pointer',opacity: step===0 ? 0.4 : 1,fontFamily:'DM Sans, sans-serif',fontSize:'.85rem'}} disabled={step===0}>
-            ← Back
-          </button>
-          {step < 3
-            ? <button onClick={() => setStep(s => s+1)} style={{padding:'.7rem 1.8rem',background:'#B5622A',color:'white',border:'none',borderRadius:'2rem',cursor:'pointer',fontFamily:'DM Sans, sans-serif',fontSize:'.85rem',fontWeight:500}}>
-                Next →
-              </button>
-            : <button onClick={() => setSubmitted(true)} style={{padding:'.7rem 1.8rem',background:'#B5622A',color:'white',border:'none',borderRadius:'2rem',cursor:'pointer',fontFamily:'DM Sans, sans-serif',fontSize:'.85rem',fontWeight:500}}>
-                Submit profile →
-              </button>
-          }
-        </div>
+        ${personalisation_note ? `
+        <div style="margin-top:12px;background:rgba(181,98,42,.06);border-radius:10px;padding:14px;border-left:3px solid #B5622A;">
+          <span style="font-size:11px;color:#B5622A;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.1em;">Personalisation note</span>
+          <p style="font-size:14px;color:#3D2B1F;margin:0;line-height:1.6;">${personalisation_note}</p>
+        </div>` : ''}
       </div>
+
+      <!-- Reply CTA -->
+      <a href="mailto:${buyer_email}?subject=Re: Your GiftSoul enquiry for ${encodeURIComponent(product_name || 'your item')}"
+        style="display:block;text-align:center;padding:14px 24px;background:#B5622A;color:white;text-decoration:none;border-radius:40px;font-size:14px;font-weight:500;letter-spacing:.06em;margin-bottom:20px;">
+        Reply to ${buyer_name} →
+      </a>
+
+      <p style="font-size:13px;color:#C4A882;text-align:center;margin:0;">
+        Or email them directly at <a href="mailto:${buyer_email}" style="color:#B5622A;">${buyer_email}</a>
+        ${buyer_phone ? `<br>Phone: ${buyer_phone}` : ''}
+      </p>
     </div>
-  )
+
+    <!-- Tips -->
+    <div style="background:#EDE6DA;padding:24px 40px;border-top:1px solid #D9CDB8;">
+      <p style="font-size:12px;font-weight:500;color:#3D2B1F;margin:0 0 8px;">💡 Tips for a great response</p>
+      <ul style="font-size:12px;color:#7A6A5A;margin:0;padding-left:16px;line-height:1.8;">
+        <li>Reply within 12 hours — fast replies get more orders</li>
+        <li>Confirm availability and lead time upfront</li>
+        <li>Share a photo of a similar piece if you have one</li>
+        <li>Mention your payment method (UPI / bank transfer)</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 40px;text-align:center;border-top:1px solid #D9CDB8;">
+      <p style="font-size:12px;color:#C4A882;margin:0;">© 2026 GiftSoul · Made with love in India</p>
+    </div>
+  </div>
+</body>
+</html>
+          `,
+        }),
+      })
+      emailSent = true
+    }
+
+    // ── 4. Send confirmation email TO buyer ───────────────
+    if (resendKey && buyer_email) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'GiftSoul <noreply@giftsoul.in>',
+          to: [buyer_email],
+          subject: `Your gift enquiry has been sent — GiftSoul`,
+          html: `
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#F7F3EE;font-family:'DM Sans',Arial,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:white;border-radius:20px;overflow:hidden;border:1px solid #D9CDB8;">
+    <div style="background:#3D2B1F;padding:32px 40px;text-align:center;">
+      <p style="font-family:Georgia,serif;font-size:28px;font-weight:300;color:#F7F3EE;margin:0;">
+        Gift<em style="font-style:italic;color:#D4856A;">Soul</em>
+      </p>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-family:Georgia,serif;font-size:22px;font-weight:300;color:#3D2B1F;margin:0 0 12px;">
+        Your enquiry is on its way, ${buyer_name.split(' ')[0]}! 🎁
+      </p>
+      <p style="font-size:15px;color:#7A6A5A;line-height:1.7;margin:0 0 20px;">
+        ${creator_name ? `We've notified <strong style="color:#3D2B1F;">${creator_name}</strong> about your interest` : 'The creator has been notified'} in <strong style="color:#3D2B1F;">${product_name || 'their handmade gift'}</strong>. They usually respond within 12 hours.
+      </p>
+      <div style="background:#F7F3EE;border-radius:14px;padding:20px;margin-bottom:24px;">
+        <p style="font-size:13px;color:#7A6A5A;margin:0 0 10px;font-weight:500;">Your message:</p>
+        <p style="font-family:Georgia,serif;font-size:15px;color:#3D2B1F;font-style:italic;margin:0;line-height:1.65;">"${message}"</p>
+      </div>
+      <a href="https://gift-soul-emotion-based-gifting-fw6m-eepoakvcs.vercel.app/marketplace"
+        style="display:block;text-align:center;padding:14px 24px;background:#B5622A;color:white;text-decoration:none;border-radius:40px;font-size:14px;font-weight:500;margin-bottom:16px;">
+        Browse more gifts →
+      </a>
+    </div>
+    <div style="padding:16px 40px;text-align:center;border-top:1px solid #D9CDB8;">
+      <p style="font-size:12px;color:#C4A882;margin:0;">© 2026 GiftSoul · Made with love in India</p>
+    </div>
+  </div>
+</body>
+</html>
+          `,
+        }),
+      })
+    }
+
+    return Response.json({
+      success: true,
+      enquiry: savedEnquiry,
+      emailSent,
+      message: 'Enquiry sent! The creator has been notified.',
+    })
+
+  } catch (error) {
+    console.error('Enquiry error:', error)
+    return Response.json({ error: error.message || 'Something went wrong' }, { status: 500 })
+  }
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const creatorId = searchParams.get('creator_id')
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return Response.json({ error: 'Database not configured' }, { status: 500 })
+    }
+
+    const url = creatorId
+      ? `${supabaseUrl}/rest/v1/enquiries?creator_id=eq.${creatorId}&order=created_at.desc`
+      : `${supabaseUrl}/rest/v1/enquiries?order=created_at.desc&limit=50`
+
+    const res = await fetch(url, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+    })
+
+    const data = await res.json()
+    return Response.json({ enquiries: data })
+
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 })
+  }
 }
