@@ -1,25 +1,51 @@
 /* GiftSoul Design System v2 */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --cream: #F7F3EE;
-  --warm: #EDE6DA;
-  --sand: #D9CDB8;
-  --clay: #C4A882;
-  --ember: #B5622A;
-  --ember2: #8C4519;
-  --deep: #3D2B1F;
-  --muted: #7A6A5A;
-  --blush: #D4856A;
-  --green: #4A6741;
-  --nav-h: 70px;
+/* ============================================
+   GIFTSOUL — Refreshed Color Palette v3
+   Same warm/earthy family, deeper contrast,
+   more saturated accent, better legibility
+   ============================================ */
 
-  /* Animation durations */
-  --dur-fast: 0.18s;
-  --dur-mid: 0.35s;
-  --dur-slow: 0.65s;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+:root {
+  /* ---- Backgrounds (lightest to darkest) ---- */
+  --cream:      #F6F1E9;   /* was #F5EFE6 — slightly warmer, less grey */
+  --warm:       #ECE2D0;   /* was #EAE0D0 — a touch more saturated */
+  --sand:       #D6C2A0;   /* was #D4C5A9 — leans more golden, less pink */
+
+  /* ---- Mid tones ---- */
+  --clay:       #BE9A66;   /* was #C4A882 — richer, more "terracotta clay" */
+  --muted:      #5E4E3A;   /* was #6B5B47 — darker = better text contrast */
+  --muted2:     #80694C;   /* was #8A7560 */
+
+  /* ---- Accent (the hero color — used on buttons/CTAs) ---- */
+  --ember:      #A8501F;   /* was #B5622A — deeper, more saturated, less orange-y */
+  --ember2:     #823B14;   /* was #8C4519 — hover state, darker */
+  --ember3:     #5C290E;   /* was #6B3210 — pressed state */
+
+  /* ---- Darkest (nav/footer backgrounds, headline text) ---- */
+  --deep:       #241809;   /* was #2C1F12 — true espresso, near-black */
+  --deep2:      #150D04;   /* was #1A1209 */
+
+  /* ---- New supporting accents ---- */
+  --green:      #35592F;   /* was #3D6B3A — deeper sage, less mint */
+  --blush:      #C06B4F;   /* was #D4856A — more rust, ties to ember family */
+  --rose:       #9C4A4A;   /* NEW — for apology/grief emotion tags, distinct from ember */
+  --teal:       #25524A;   /* was #2D6B62 — deeper, used sparingly for "hope/new beginnings" tags */
+  --gold:       #B08527;   /* was #C49A2A — used only for ribbon/decorative accents */
+
+  --white:      #FFFFFF;
+
+  /* ---- Semantic mapping (use these in your components, not raw colors) ---- */
+  --bg-primary:    var(--cream);
+  --bg-secondary:  var(--warm);
+  --bg-dark:       var(--deep);
+  --text-primary:  var(--deep);
+  --text-muted:    var(--muted);
+  --text-accent:   var(--ember);
+  --text-on-dark:  var(--cream);
+  --border-color:  var(--sand);
+  --border-light:  rgba(190,154,102,.28);   /* clay at 28% — replaces old border-light */
 }
 
 html { scroll-behavior: smooth; }
