@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 const EXAMPLES = [
   "My best friend just got her dream job after years of trying. She loves plants and always lights a candle while she works. I want something that feels like a warm hug.",

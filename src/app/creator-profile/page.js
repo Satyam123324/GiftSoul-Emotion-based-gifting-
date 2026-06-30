@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function CreatorProfile() {
   const [activeTab, setActiveTab] = useState('shop')

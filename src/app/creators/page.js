@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const CREATORS = [
   {init:'S',name:'Sneha Patel',city:'Jaipur, Rajasthan',craft:'Soy candles',bg:'#FFF3E0',sales:48,rating:'4.9',emotions:['Celebration','Self-care','Love']},
