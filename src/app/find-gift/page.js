@@ -1,4 +1,5 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import Sparkles from '../components/Sparkles'
@@ -336,16 +337,6 @@ export default function FindGift() {
         <div style={{ fontSize: '.75rem', color: 'rgba(246,241,233,.28)' }}>© 2026 GiftSoul · Powered by AI · Made with love in India.</div>
       </footer>
 
-      <style>{`
-        @keyframes wobbleBox {
-          0%, 100% { transform: rotate(0deg); }
-          15% { transform: rotate(-10deg); }
-          30% { transform: rotate(8deg); }
-          45% { transform: rotate(-6deg); }
-          60% { transform: rotate(4deg); }
-          75% { transform: rotate(-2deg); }
-        }
-      `}</style>
     </div>
   )
 }

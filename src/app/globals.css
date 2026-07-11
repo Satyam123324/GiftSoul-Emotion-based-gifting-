@@ -205,6 +205,38 @@ nav.scrolled {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes wobbleBox {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-10deg); }
+  30% { transform: rotate(8deg); }
+  45% { transform: rotate(-6deg); }
+  60% { transform: rotate(4deg); }
+  75% { transform: rotate(-2deg); }
+}
+
+@keyframes gsSparkleTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(20deg); }
+}
+
+.gs-sparkle-icon {
+  animation-name: gsSparkleTwinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.gs-spinner-circle {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid rgba(168,80,31,.2);
+  border-top-color: #A8501F;
+  border-radius: 50%;
+  animation: gsSpin .7s linear infinite;
+}
+
+@keyframes gsSpin {
+  to { transform: rotate(360deg); }
+}
 
 /* ── GIFT BOX COMPONENT ────────────────────────────── */
 .gift-box-wrap {
