@@ -146,9 +146,7 @@ export default function Creators() {
         {!loading && filtered.length > 0 && (
           <div className="gs-creators-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: '1.8rem' }}>
             {filtered.map((c, i) => (
-              <Link
-                key={c.id || i}
-                href="/creator-profile"
+              <Link key={c.id || i} href={`/creator/${c.id}`}
                 style={{ background: 'white', border: '1px solid #D6C2A0', borderRadius: '20px', padding: '1.6rem', textDecoration: 'none', display: 'block', transition: 'all .25s ease' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(36,24,9,.10)' }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}

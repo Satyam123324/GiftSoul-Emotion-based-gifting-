@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabase'
+import { supabase } from '../../lib/supabase'
 
 // POST send enquiry
 export async function POST(request) {

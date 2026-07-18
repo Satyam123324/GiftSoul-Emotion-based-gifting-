@@ -2,8 +2,12 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import ImageUpload from '../components/ImageUpload'
+import { useRequireAuth } from '../lib/useRequireAuth'
+import { supabase } from '../lib/supabase'
 
 export default function Dashboard() {
+  const { user, loading: authLoading } = useRequireAuth()
+
   const [activeTab, setActiveTab] = useState('overview')
   const [toggles, setToggles] = useState({ candle: true, rose: true, gift: false })
 
@@ -93,6 +97,22 @@ export default function Dashboard() {
     }
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
+
+  // ---- AUTH GATES ----
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F6F1E9' }}>
+        <p style={{ color: '#5E4E3A', fontFamily: 'DM Sans, sans-serif' }}>Loading...</p>
+      </div>
+    )
+  }
+  if (!user) return null
+  // ---------------------
+
   return (
     <div style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: '240px 1fr', background: '#F6F1E9' }}>
 
@@ -102,9 +122,10 @@ export default function Dashboard() {
           <Link href="/" style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.4rem', fontWeight: 400, color: '#F6F1E9', textDecoration: 'none', display: 'block', marginBottom: '1.2rem' }}>
             Gift<em style={{ fontStyle: 'italic', color: '#C06B4F' }}>Soul</em>
           </Link>
-          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.2rem', color: '#241809', marginBottom: '.7rem' }}>S</div>
-          <div style={{ fontSize: '.9rem', color: '#F6F1E9', fontWeight: 500 }}>Sneha Patel</div>
-          <div style={{ fontSize: '.72rem', color: 'rgba(246,241,233,.4)' }}>Sneha&apos;s Nook</div>
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#FFF3E0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.2rem', color: '#241809', marginBottom: '.7rem' }}>
+            {(user.email || '?')[0].toUpperCase()}
+          </div>
+          <div style={{ fontSize: '.9rem', color: '#F6F1E9', fontWeight: 500, wordBreak: 'break-all' }}>{user.email}</div>
         </div>
         <div>
           <div style={{ fontSize: '.62rem', letterSpacing: '.15em', textTransform: 'uppercase', color: 'rgba(246,241,233,.25)', padding: '.8rem 1.5rem .4rem' }}>Overview</div>
@@ -126,7 +147,13 @@ export default function Dashboard() {
           ))}
           <div style={{ padding: '1.5rem', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,.07)' }}>
             <Link href="/creator-profile" style={{ fontSize: '.78rem', color: 'rgba(246,241,233,.45)', textDecoration: 'none', display: 'block', marginBottom: '.5rem' }}>View my shop →</Link>
-            <Link href="/" style={{ fontSize: '.78rem', color: 'rgba(246,241,233,.45)', textDecoration: 'none', display: 'block' }}>← Back to GiftSoul</Link>
+            <Link href="/" style={{ fontSize: '.78rem', color: 'rgba(246,241,233,.45)', textDecoration: 'none', display: 'block', marginBottom: '.5rem' }}>← Back to GiftSoul</Link>
+            <button
+              onClick={handleLogout}
+              style={{ fontSize: '.78rem', color: 'rgba(246,241,233,.45)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, fontFamily: 'DM Sans, sans-serif' }}
+            >
+              Log out
+            </button>
           </div>
         </div>
       </div>
@@ -139,7 +166,7 @@ export default function Dashboard() {
           <div>
             <p style={{ fontSize: '.72rem', letterSpacing: '.18em', textTransform: 'uppercase', color: '#A8501F', marginBottom: '.5rem' }}>Creator dashboard</p>
             <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: '#241809', marginBottom: '2rem' }}>
-              Good morning, <em style={{ fontStyle: 'italic', color: '#A8501F' }}>Sneha</em>
+              Good morning, <em style={{ fontStyle: 'italic', color: '#A8501F' }}>{user.email.split('@')[0]}</em>
             </h1>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '1.2rem', marginBottom: '2rem' }}>
@@ -220,7 +247,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ADD PRODUCT FORM */}
             {showAddForm && (
               <div style={{ background: 'white', border: '1px solid #D6C2A0', borderRadius: '20px', padding: '1.75rem', marginBottom: '1.5rem' }}>
                 <p style={{ fontSize: '.7rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#7A6A5A', marginBottom: '1.25rem' }}>New product</p>
@@ -269,7 +295,6 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* Product type toggle */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ fontSize: '13px', color: '#7A6A5A', display: 'block', marginBottom: '.5rem' }}>Product type</label>
                   <div style={{ display: 'flex', gap: '.6rem' }}>
@@ -333,7 +358,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* EXISTING PRODUCTS LIST */}
             <div style={{ background: 'white', border: '1px solid #D6C2A0', borderRadius: '20px', padding: '1.5rem' }}>
               {products.map((p, i) => (
                 <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '.9rem 0', borderBottom: i < products.length - 1 ? '1px solid #ECE2D0' : 'none' }}>
@@ -378,7 +402,7 @@ export default function Dashboard() {
             <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: '#241809', marginBottom: '2rem' }}>Edit your <em style={{ color: '#A8501F' }}>profile</em></h1>
             <div style={{ background: 'white', border: '1px solid #D6C2A0', borderRadius: '20px', padding: '1.75rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                {[['First name', 'Sneha'], ['Last name', 'Patel'], ['Shop name', "Sneha's Nook"], ['City', 'Jaipur, Rajasthan']].map(([label, val]) => (
+                {[['First name', ''], ['Last name', ''], ['Shop name', ''], ['City', '']].map(([label, val]) => (
                   <div key={label}>
                     <label style={{ fontSize: '.72rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#7A6A5A', display: 'block', marginBottom: '.4rem' }}>{label}</label>
                     <input defaultValue={val} style={{ width: '100%', border: '1px solid #D9CDB8', borderRadius: '8px', padding: '.65rem 1rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.9rem', background: 'white', color: '#241809', outline: 'none' }} />
@@ -391,7 +415,7 @@ export default function Dashboard() {
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ fontSize: '.72rem', letterSpacing: '.1em', textTransform: 'uppercase', color: '#7A6A5A', display: 'block', marginBottom: '.4rem' }}>Your story (bio)</label>
-                <textarea rows={5} defaultValue="I started making candles in my kitchen in Jaipur during the 2020 lockdown..." style={{ width: '100%', border: '1px solid #D9CDB8', borderRadius: '8px', padding: '.65rem 1rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.9rem', resize: 'vertical', lineHeight: 1.6 }} />
+                <textarea rows={5} placeholder="Tell your story..." style={{ width: '100%', border: '1px solid #D9CDB8', borderRadius: '8px', padding: '.65rem 1rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.9rem', resize: 'vertical', lineHeight: 1.6 }} />
               </div>
               <button onClick={() => alert('Profile saved!')} style={{ padding: '.7rem 2rem', background: '#A8501F', color: 'white', border: 'none', borderRadius: '2rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: '.85rem', fontWeight: 500 }}>
                 Save changes

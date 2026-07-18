@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 export default function ImageUpload({ bucket = 'product-images', folder = 'general', onUploaded, label = 'Upload a photo' }) {
   const [uploading, setUploading] = useState(false)
@@ -52,16 +52,20 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
     <div>
       <label
         style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: '.5rem', width: '100%', minHeight: '140px',
-          border: '1.5px dashed #D6C2A0', borderRadius: '14px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '.5rem',
+          width: '100%',
+          minHeight: '140px',
+          border: '1.5px dashed #D6C2A0',
+          borderRadius: '14px',
           background: previewUrl ? 'transparent' : '#F6F1E9',
           cursor: uploading ? 'not-allowed' : 'pointer',
-          overflow: 'hidden', position: 'relative',
-          transition: 'border-color .2s ease'
+          overflow: 'hidden',
+          position: 'relative'
         }}
-        onMouseEnter={e => { if (!uploading) e.currentTarget.style.borderColor = '#A8501F' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = '#D6C2A0' }}
       >
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -75,15 +79,15 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
         )}
 
         {uploading && (
-          <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(246,241,233,.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          <div className="gs-upload-spinner" style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(246,241,233,.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <div style={{
-              width: '22px', height: '22px', border: '2.5px solid rgba(168,80,31,.2)',
-              borderTopColor: '#A8501F', borderRadius: '50%',
-              animation: 'gsSpin .7s linear infinite'
-            }} />
+            <div className="gs-spinner-circle" />
           </div>
         )}
 
