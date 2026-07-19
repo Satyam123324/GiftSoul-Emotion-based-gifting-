@@ -9,30 +9,30 @@
 
 :root {
   /* ---- Backgrounds (lightest to darkest) ---- */
-  --cream:      #F6F1E9;   /* was #F5EFE6 — slightly warmer, less grey */
-  --warm:       #ECE2D0;   /* was #EAE0D0 — a touch more saturated */
-  --sand:       #D6C2A0;   /* was #D4C5A9 — leans more golden, less pink */
+  --cream:      #FBF7F2;   /* was #F6F1E9 — pale yellow, from new palette */
+  --warm:       #F3E8DC;   /* was #ECE2D0 — brighter yellow surface */
+  --sand:       #F3E8DC;   /* was #D6C2A0 — bright yellow border */
 
   /* ---- Mid tones ---- */
-  --clay:       #BE9A66;   /* was #C4A882 — richer, more "terracotta clay" */
-  --muted:      #5E4E3A;   /* was #6B5B47 — darker = better text contrast */
-  --muted2:     #80694C;   /* was #8A7560 */
+  --clay:       #C99A54;   /* was #BE9A66 — coral pink */
+  --muted:      #7C6B60;   /* was #5E4E3A — muted plum for secondary text */
+  --muted2:     #A8386A;   /* was #80694C */
 
   /* ---- Accent (the hero color — used on buttons/CTAs) ---- */
-  --ember:      #A8501F;   /* was #B5622A — deeper, more saturated, less orange-y */
-  --ember2:     #823B14;   /* was #8C4519 — hover state, darker */
-  --ember3:     #5C290E;   /* was #6B3210 — pressed state */
+  --ember:      #B5533C;   /* was #A8501F — vivid magenta/pink */
+  --ember2:     #B92E63;   /* was #823B14 — hover state, darker */
+  --ember3:     #8F1F4C;   /* was #5C290E — pressed state */
 
   /* ---- Darkest (nav/footer backgrounds, headline text) ---- */
-  --deep:       #241809;   /* was #2C1F12 — true espresso, near-black */
-  --deep2:      #150D04;   /* was #1A1209 */
+  --deep:       #2B2019;   /* was #241809 — deep magenta-plum */
+  --deep2:      #3D0A20;   /* was #150D04 */
 
   /* ---- New supporting accents ---- */
-  --green:      #35592F;   /* was #3D6B3A — deeper sage, less mint */
-  --blush:      #C06B4F;   /* was #D4856A — more rust, ties to ember family */
-  --rose:       #9C4A4A;   /* NEW — for apology/grief emotion tags, distinct from ember */
-  --teal:       #25524A;   /* was #2D6B62 — deeper, used sparingly for "hope/new beginnings" tags */
-  --gold:       #B08527;   /* was #C49A2A — used only for ribbon/decorative accents */
+  --green:      #35592F;   /* unchanged — sage, used sparingly */
+  --blush:      #C99A54;   /* was #C06B4F — coral pink */
+  --rose:       #9C4A4A;   /* unchanged — apology/grief emotion tags */
+  --teal:       #25524A;   /* unchanged — hope/new beginnings tags */
+  --gold:       #F3E8DC;   /* was #B08527 — bright yellow ribbon accent */
 
   --white:      #FFFFFF;
 
@@ -67,7 +67,7 @@ nav {
   transition: background var(--dur-mid), box-shadow var(--dur-mid);
 }
 nav.scrolled {
-  background: rgba(247,243,238,.93);
+  background: rgba(251,247,242,.93);
   backdrop-filter: blur(16px);
   box-shadow: 0 1px 0 var(--sand);
 }
@@ -129,7 +129,7 @@ nav.scrolled {
 .btn-ember:hover { background: var(--ember2); }
 .btn-outline { background: transparent; color: var(--deep); border: 1px solid var(--sand); }
 .btn-outline:hover { border-color: var(--ember); color: var(--ember); }
-.btn-outline-light { background: transparent; color: var(--cream); border: 1px solid rgba(247,243,238,.3); }
+.btn-outline-light { background: transparent; color: var(--cream); border: 1px solid rgba(251,247,242,.3); }
 .btn-outline-light:hover { border-color: var(--clay); }
 
 /* ── REVEAL ANIMATIONS ─────────────────────────────── */
@@ -187,9 +187,9 @@ nav.scrolled {
 }
 
 @keyframes pulseRing {
-  0%   { transform: scale(.95); box-shadow: 0 0 0 0 rgba(181,98,42,.4); }
-  70%  { transform: scale(1);   box-shadow: 0 0 0 12px rgba(181,98,42,0); }
-  100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(181,98,42,0); }
+  0%   { transform: scale(.95); box-shadow: 0 0 0 0 rgba(181,83,60,.4); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 12px rgba(181,83,60,0); }
+  100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(181,83,60,0); }
 }
 
 @keyframes spin {
@@ -335,7 +335,7 @@ nav.scrolled {
 }
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(61,43,31,.12);
+  box-shadow: 0 12px 40px rgba(43,32,25,.12);
 }
 
 /* ── EMOTION TAGS ──────────────────────────────────── */
@@ -370,9 +370,9 @@ nav.scrolled {
   display: inline-block;
   padding: .3rem 1rem;
   border-radius: 2rem;
-  background: rgba(181,98,42,.18);
-  border: 1px solid rgba(181,98,42,.35);
-  color: #D4856A;
+  background: rgba(181,83,60,.18);
+  border: 1px solid rgba(181,83,60,.35);
+  color: #C97B63;
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: .88rem;
@@ -417,16 +417,16 @@ footer {
 }
 .footer-brand { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 300; color: var(--cream); }
 .footer-brand em { font-style: italic; color: var(--blush); }
-.footer-tagline { font-size: .82rem; color: rgba(247,243,238,.38); margin-top: .5rem; line-height: 1.6; }
+.footer-tagline { font-size: .82rem; color: rgba(251,247,242,.38); margin-top: .5rem; line-height: 1.6; }
 .footer-col h4 { font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: var(--clay); margin-bottom: 1.1rem; }
 .footer-col a {
   display: block; font-size: .85rem;
-  color: rgba(247,243,238,.45); text-decoration: none;
+  color: rgba(251,247,242,.45); text-decoration: none;
   margin-bottom: .55rem;
   transition: color var(--dur-fast);
 }
 .footer-col a:hover { color: var(--cream); }
-.footer-bottom { display: flex; justify-content: space-between; font-size: .75rem; color: rgba(247,243,238,.28); }
+.footer-bottom { display: flex; justify-content: space-between; font-size: .75rem; color: rgba(251,247,242,.28); }
 
 /* ── SECTION TITLES ────────────────────────────────── */
 .eyebrow {

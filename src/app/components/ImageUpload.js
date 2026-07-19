@@ -59,9 +59,9 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
           gap: '.5rem',
           width: '100%',
           minHeight: '140px',
-          border: '1.5px dashed #D6C2A0',
+          border: '1.5px dashed #F3E8DC',
           borderRadius: '14px',
-          background: previewUrl ? 'transparent' : '#F6F1E9',
+          background: previewUrl ? 'transparent' : '#FBF7F2',
           cursor: uploading ? 'not-allowed' : 'pointer',
           overflow: 'hidden',
           position: 'relative'
@@ -72,9 +72,9 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
           <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
         ) : (
           <>
-            <span style={{ fontSize: '1.6rem', color: '#BE9A66' }}>+</span>
-            <span style={{ fontSize: '.82rem', color: '#5E4E3A', fontFamily: 'DM Sans, sans-serif' }}>{label}</span>
-            <span style={{ fontSize: '.7rem', color: '#BE9A66' }}>JPG, PNG or WEBP — max 5MB</span>
+            <span style={{ fontSize: '1.6rem', color: '#C99A54' }}>+</span>
+            <span style={{ fontSize: '.82rem', color: '#7C6B60', fontFamily: 'DM Sans, sans-serif' }}>{label}</span>
+            <span style={{ fontSize: '.7rem', color: '#C99A54' }}>JPG, PNG or WEBP — max 5MB</span>
           </>
         )}
 
@@ -82,7 +82,7 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
           <div className="gs-upload-spinner" style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(246,241,233,.85)',
+            background: 'rgba(251,247,242,.85)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -101,7 +101,7 @@ export default function ImageUpload({ bucket = 'product-images', folder = 'gener
       </label>
 
       {error && (
-        <p style={{ fontSize: '.78rem', color: '#A8501F', marginTop: '.5rem' }}>{error}</p>
+        <p style={{ fontSize: '.78rem', color: '#B5533C', marginTop: '.5rem' }}>{error}</p>
       )}
     </div>
   )

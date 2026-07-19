@@ -1,6 +1,6 @@
 'use client'
 
-export default function Sparkles({ count = 6, color = '#C49A2A' }) {
+export default function Sparkles({ count = 6, color = '#C99A54' }) {
   const sparkles = Array.from({ length: count }, (_, i) => {
     const seed = i * 137.5
     const top = (seed % 90) + '%'
