@@ -24,11 +24,78 @@ export default function ProductDetail({ params }) {
   const [sent, setSent] = useState(false)
   const [sendError, setSendError] = useState('')
 
+  const [reviews, setReviews] = useState([])
+  const [avgRating, setAvgRating] = useState(0)
+  const [reviewCount, setReviewCount] = useState(0)
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [reviewerName, setReviewerName] = useState('')
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHoverRating, setReviewHoverRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewSubmitted, setReviewSubmitted] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+
   useEffect(() => {
     fetchProduct()
+    fetchReviews()
     setSaved(isWishlisted(id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  async function fetchReviews() {
+    setReviewsLoading(true)
+    try {
+      const res = await fetch(`/api/reviews?product_id=${id}`)
+      const data = await res.json()
+      if (!data.error) {
+        setReviews(data.reviews || [])
+        setAvgRating(data.average || 0)
+        setReviewCount(data.count || 0)
+      }
+    } catch (e) {
+      // fail quietly - reviews are supplementary, not critical path
+    } finally {
+      setReviewsLoading(false)
+    }
+  }
+
+  async function submitReview() {
+    if (!reviewerName || !reviewRating) {
+      setReviewError('Please add your name and pick a star rating.')
+      return
+    }
+    setReviewSubmitting(true)
+    setReviewError('')
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: id,
+          creator_id: product?.creator_id,
+          buyer_name: reviewerName,
+          rating: reviewRating,
+          comment: reviewComment,
+        }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setReviewError(data.error)
+      } else {
+        setReviewSubmitted(true)
+        setReviewerName('')
+        setReviewRating(0)
+        setReviewComment('')
+        fetchReviews()
+      }
+    } catch (e) {
+      setReviewError('Could not submit your review right now, please try again.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
 
   async function fetchProduct() {
     setLoading(true)
@@ -169,9 +236,22 @@ export default function ProductDetail({ params }) {
                 ))}
               </div>
 
-              <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(1.7rem,3vw,2.6rem)', fontWeight: 400, lineHeight: 1.15, color: '#2B2019', marginBottom: '.8rem' }}>
+              <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(1.7rem,3vw,2.6rem)', fontWeight: 400, lineHeight: 1.15, color: '#2B2019', marginBottom: '.6rem' }}>
                 {product.name}
               </h1>
+
+              {!reviewsLoading && reviewCount > 0 && (
+                <button
+                  onClick={() => setActiveTab('reviews')}
+                  style={{ display: 'flex', alignItems: 'center', gap: '.4rem', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '.8rem' }}
+                >
+                  <span style={{ color: '#C99A54', fontSize: '.95rem', letterSpacing: '.05em' }}>
+                    {'★'.repeat(Math.round(avgRating))}{'☆'.repeat(5 - Math.round(avgRating))}
+                  </span>
+                  <span style={{ fontSize: '.85rem', color: '#2B2019', fontWeight: 500 }}>{avgRating}</span>
+                  <span style={{ fontSize: '.8rem', color: '#7C6B60', textDecoration: 'underline' }}>({reviewCount} review{reviewCount !== 1 ? 's' : ''})</span>
+                </button>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '.8rem', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '2rem', fontWeight: 500, color: '#2B2019' }}>₹{product.base_price}</span>
@@ -272,7 +352,7 @@ export default function ProductDetail({ params }) {
               )}
 
               <div style={{ display: 'flex', borderBottom: '1px solid #E4D3BE', marginBottom: '1.5rem', overflowX: 'auto' }}>
-                {[['about', 'About'], ['specs', 'Details'], ['reviews', 'Reviews']].map(([tid, label]) => (
+                {[['about', 'About'], ['specs', 'Details'], ['reviews', reviewCount > 0 ? `Reviews (${reviewCount})` : 'Reviews']].map(([tid, label]) => (
                   <button key={tid} onClick={() => setActiveTab(tid)} style={{ padding: '.7rem 1.4rem', fontSize: '.82rem', color: activeTab === tid ? '#B5533C' : '#7C6B60', border: 'none', borderBottom: activeTab === tid ? '2px solid #B5533C' : '2px solid transparent', background: 'transparent', cursor: 'pointer', marginBottom: '-1px', whiteSpace: 'nowrap' }}>
                     {label}
                   </button>
@@ -301,7 +381,82 @@ export default function ProductDetail({ params }) {
                 </table>
               )}
               {activeTab === 'reviews' && (
-                <p style={{ fontSize: '.9rem', color: '#7C6B60' }}>No reviews yet — be the first to buy this gift!</p>
+                <div>
+                  {reviewsLoading && (
+                    <p style={{ fontSize: '.85rem', color: '#7C6B60' }}>Loading reviews...</p>
+                  )}
+
+                  {!reviewsLoading && reviews.length === 0 && (
+                    <p style={{ fontSize: '.9rem', color: '#7C6B60', marginBottom: '1.5rem' }}>No reviews yet — be the first to buy this gift!</p>
+                  )}
+
+                  {!reviewsLoading && reviews.length > 0 && (
+                    <div style={{ marginBottom: '2rem' }}>
+                      {reviews.map(r => (
+                        <div key={r.id} style={{ borderBottom: '1px solid #F3E8DC', padding: '1rem 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '.3rem' }}>
+                            <span style={{ fontSize: '.9rem', fontWeight: 500, color: '#2B2019' }}>{r.buyer_name}</span>
+                            <span style={{ fontSize: '.75rem', color: '#7C6B60' }}>{new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </div>
+                          <div style={{ color: '#C99A54', fontSize: '.85rem', marginBottom: '.4rem' }}>
+                            {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                          </div>
+                          {r.comment && (
+                            <p style={{ fontSize: '.87rem', color: '#7C6B60', lineHeight: 1.6 }}>{r.comment}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ background: '#F3E8DC', border: '1px solid #E4D3BE', borderRadius: '16px', padding: '1.3rem' }}>
+                    <p style={{ fontSize: '.9rem', fontWeight: 500, color: '#2B2019', marginBottom: '.9rem' }}>Write a review</p>
+
+                    {reviewSubmitted ? (
+                      <p style={{ fontSize: '.87rem', color: '#4A6B3C' }}>✓ Thanks for your review!</p>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', gap: '.3rem', marginBottom: '.9rem' }}>
+                          {[1, 2, 3, 4, 5].map(n => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => setReviewRating(n)}
+                              onMouseEnter={() => setReviewHoverRating(n)}
+                              onMouseLeave={() => setReviewHoverRating(0)}
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#C99A54', padding: 0, lineHeight: 1 }}
+                            >
+                              {(reviewHoverRating || reviewRating) >= n ? '★' : '☆'}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          value={reviewerName}
+                          onChange={e => setReviewerName(e.target.value)}
+                          placeholder="Your name"
+                          style={{ width: '100%', padding: '.6rem .9rem', border: '1px solid #E4D3BE', borderRadius: '10px', fontSize: '.85rem', outline: 'none', marginBottom: '.7rem', fontFamily: 'inherit' }}
+                        />
+                        <textarea
+                          value={reviewComment}
+                          onChange={e => setReviewComment(e.target.value)}
+                          placeholder="Share your experience with this gift (optional)"
+                          rows={3}
+                          style={{ width: '100%', padding: '.6rem .9rem', border: '1px solid #E4D3BE', borderRadius: '10px', fontSize: '.85rem', outline: 'none', resize: 'none', marginBottom: '.8rem', fontFamily: 'inherit' }}
+                        />
+                        {reviewError && (
+                          <p style={{ fontSize: '.8rem', color: '#B5533C', marginBottom: '.8rem' }}>{reviewError}</p>
+                        )}
+                        <button
+                          onClick={submitReview}
+                          disabled={reviewSubmitting}
+                          style={{ padding: '.6rem 1.6rem', background: '#B5533C', color: 'white', border: 'none', borderRadius: '2rem', fontSize: '.83rem', cursor: 'pointer', opacity: reviewSubmitting ? .7 : 1 }}
+                        >
+                          {reviewSubmitting ? 'Submitting...' : 'Submit review'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>

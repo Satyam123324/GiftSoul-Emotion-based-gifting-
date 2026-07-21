@@ -84,27 +84,32 @@ Choose emotions from: love, grief, celebration, gratitude, nostalgia, friendship
 
     // Step 3 — Match products by emotion score
     const matched = products
-      .map(p => ({
-        ...p,
-        icon: getCategoryIcon(p.category),
-        score: p.emotion_tags
+      .map(p => {
+        const matchedEmotions = p.emotion_tags
           ? p.emotion_tags.filter(e =>
               aiResult.emotions.some(ae =>
                 ae.toLowerCase().includes(e.toLowerCase()) ||
                 e.toLowerCase().includes(ae.toLowerCase())
               )
-            ).length
-          : 0
-      }))
+            )
+          : []
+        return {
+          ...p,
+          icon: getCategoryIcon(p.category),
+          score: matchedEmotions.length,
+          matchedEmotions,
+        }
+      })
       .filter(p => p.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 4)
 
     // If no matches use top 4 products
-    const suggestions = matched.length > 0 ? matched : products.slice(0, 4).map(p => ({
+    const suggestions = (matched.length > 0 ? matched : products.slice(0, 4).map(p => ({
       ...p,
-      icon: getCategoryIcon(p.category)
-    }))
+      icon: getCategoryIcon(p.category),
+      matchedEmotions: [],
+    }))).map(p => ({ ...p, why: buildWhyThisFits(p, aiResult) }))
 
     // Step 4 — Save this request to database for analytics
     await supabase.from('gift_requests').insert([{
@@ -130,6 +135,27 @@ Choose emotions from: love, grief, celebration, gratitude, nostalgia, friendship
       error: 'Something went wrong. Please try again.'
     }, { status: 500 })
   }
+}
+
+function buildWhyThisFits(product, aiResult) {
+  const emotions = product.matchedEmotions || []
+  const recipient = aiResult.recipient ? aiResult.recipient.toLowerCase() : null
+  const occasion = aiResult.occasion || null
+
+  let base
+  if (emotions.length >= 2) {
+    base = `Matches the ${emotions.slice(0, 2).join(' and ')} in your story`
+  } else if (emotions.length === 1) {
+    base = `Matches the ${emotions[0]} in your story`
+  } else {
+    base = `A thoughtful pick from our handmade collection`
+  }
+
+  const tail = []
+  if (occasion) tail.push(occasion.toLowerCase())
+  if (recipient) tail.push(`for ${recipient}`)
+
+  return tail.length > 0 ? `${base}, and fits ${tail.join(' ')}.` : `${base}.`
 }
 
 function getCategoryIcon(category) {

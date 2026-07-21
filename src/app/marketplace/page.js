@@ -292,7 +292,16 @@ function MarketplaceInner() {
                 </div>
                 <div style={{ padding: '1.1rem 1.2rem' }}>
                   <div style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.05rem', color: '#2B2019', marginBottom: '.3rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                  <div style={{ fontSize: '.72rem', color: '#7C6B60', marginBottom: '.7rem' }}>by {p.creators?.name || p.creators?.shop_name || 'GiftSoul creator'}</div>
+                  <div style={{ fontSize: '.72rem', color: '#7C6B60', marginBottom: '.4rem' }}>by {p.creators?.name || p.creators?.shop_name || 'GiftSoul creator'}</div>
+                  {p.reviews?.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginBottom: '.5rem' }}>
+                      <span style={{ color: '#C99A54', fontSize: '.75rem' }}>★</span>
+                      <span style={{ fontSize: '.75rem', color: '#2B2019', fontWeight: 500 }}>
+                        {(p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: '.68rem', color: '#7C6B60' }}>({p.reviews.length})</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '1.15rem', fontWeight: 500, color: '#2B2019' }}>₹{p.base_price}</span>
                     <span style={{ fontSize: '.68rem', color: '#C99A54' }}>{p.lead_time_days || 5}d lead time</span>

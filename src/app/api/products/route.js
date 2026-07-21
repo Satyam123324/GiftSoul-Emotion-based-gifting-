@@ -12,7 +12,7 @@ export async function GET(request) {
 
     let query = supabase
       .from('products')
-      .select(`*, creators(name, shop_name, city, instagram_link)`)
+      .select(`*, creators(name, shop_name, city, instagram_link), reviews(rating)`)
       .eq('is_published', true)
 
     if (emotion && emotion !== 'all') {

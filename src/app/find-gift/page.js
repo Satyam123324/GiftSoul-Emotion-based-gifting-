@@ -265,9 +265,15 @@ export default function FindGift() {
                     <div style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.15rem', color: '#2B2019', marginBottom: '.3rem', lineHeight: 1.3 }}>
                       {g.name || 'Handmade gift'}
                     </div>
-                    <div style={{ fontSize: '.75rem', color: '#7C6B60', marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '.75rem', color: '#7C6B60', marginBottom: '.7rem' }}>
                       by {g.by || (g.creators && g.creators.shop_name) || 'Artisan'} · {g.city || (g.creators && g.creators.city) || 'India'}
                     </div>
+                    {g.why && (
+                      <div style={{ display: 'flex', gap: '.5rem', alignItems: 'flex-start', background: '#F3E8DC', border: '1px solid #E4D3BE', borderRadius: '10px', padding: '.6rem .8rem', marginBottom: '1rem' }}>
+                        <span style={{ fontSize: '.85rem', flexShrink: 0 }}>✨</span>
+                        <span style={{ fontSize: '.76rem', color: '#2B2019', lineHeight: 1.5 }}>{g.why}</span>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '1.1rem', fontWeight: 500, color: '#2B2019' }}>
                         {g.price || (g.base_price ? `₹${g.base_price}` : '₹500')}

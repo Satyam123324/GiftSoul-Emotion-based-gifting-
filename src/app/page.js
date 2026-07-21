@@ -151,7 +151,7 @@ export default function Home() {
             Gift<em style={{ fontStyle: 'italic', color: '#B5533C' }}>Soul</em>
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
-            {[['Browse gifts', '/marketplace'], ['By emotion', '/marketplace'], ['Creators', '/creators'], ['Corporate', '/corporate']].map(([label, href]) => (
+            {[['Browse gifts', '/marketplace'], ['By emotion', '/marketplace'], ['Creators', '/creators'], ['Corporate', '/corporate'], ['Wall of moments', '/stories']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', color: '#7C6B60', textDecoration: 'none', transition: 'color .2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#B5533C'}
                 onMouseLeave={e => e.currentTarget.style.color = '#7C6B60'}>
