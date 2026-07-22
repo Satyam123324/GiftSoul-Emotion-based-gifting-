@@ -9,6 +9,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
     const emotion = searchParams.get('emotion')
+    const creatorId = searchParams.get('creator_id')
 
     let query = supabase
       .from('products')
@@ -17,6 +18,9 @@ export async function GET(request) {
 
     if (emotion && emotion !== 'all') {
       query = query.contains('emotion_tags', [emotion])
+    }
+    if (creatorId) {
+      query = query.eq('creator_id', creatorId)
     }
 
     const { data, error } = await query.order('created_at', { ascending: false })

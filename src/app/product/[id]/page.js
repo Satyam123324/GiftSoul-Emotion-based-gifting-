@@ -2,10 +2,13 @@
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { useState, useEffect, use } from 'react'
-import { isWishlisted, toggleWishlist, addRecentlyViewed } from '../../lib/wishlist'
+import { isWishlisted, toggleWishlist, isWishlistedDB, toggleWishlistDB, addRecentlyViewed } from '../../lib/wishlist'
+import { addGiftLogEntry } from '../../lib/giftLog'
+import { useAuth } from '../../lib/useAuth'
 
 export default function ProductDetail({ params }) {
   const { id } = use(params)
+  const { user } = useAuth()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -24,6 +27,9 @@ export default function ProductDetail({ params }) {
   const [sent, setSent] = useState(false)
   const [sendError, setSendError] = useState('')
 
+  const [logPersonName, setLogPersonName] = useState('')
+  const [loggedToTimeline, setLoggedToTimeline] = useState(false)
+
   const [reviews, setReviews] = useState([])
   const [avgRating, setAvgRating] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
@@ -39,9 +45,25 @@ export default function ProductDetail({ params }) {
   useEffect(() => {
     fetchProduct()
     fetchReviews()
-    setSaved(isWishlisted(id))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  useEffect(() => {
+    if (user) {
+      isWishlistedDB(user.id, id).then(setSaved)
+    } else {
+      setSaved(isWishlisted(id))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, user])
+
+  useEffect(() => {
+    if (user) {
+      setBuyerName(prev => prev || user.user_metadata?.full_name || '')
+      setBuyerEmail(prev => prev || user.email || '')
+      setReviewerName(prev => prev || user.user_metadata?.full_name || '')
+    }
+  }, [user])
 
   async function fetchReviews() {
     setReviewsLoading(true)
@@ -116,9 +138,26 @@ export default function ProductDetail({ params }) {
     }
   }
 
-  function handleToggleSave() {
-    const next = toggleWishlist(id)
-    setSaved(next.includes(id))
+  async function handleToggleSave() {
+    if (user) {
+      const nowSaved = await toggleWishlistDB(user.id, id)
+      setSaved(nowSaved)
+    } else {
+      const next = toggleWishlist(id)
+      setSaved(next.includes(id))
+    }
+  }
+
+  function handleLogGift() {
+    if (!logPersonName || !product) return
+    addGiftLogEntry({
+      personName: logPersonName,
+      productId: product.id,
+      productName: product.name,
+      productImage: product.images?.[0] || null,
+      price: product.base_price,
+    })
+    setLoggedToTimeline(true)
   }
 
   async function sendEnquiry() {
@@ -337,6 +376,40 @@ export default function ProductDetail({ params }) {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2Zm5.81 14.03c-.24.68-1.4 1.3-1.93 1.36-.5.06-1.13.09-1.83-.11-.42-.13-.96-.31-1.65-.6-2.9-1.25-4.79-4.17-4.94-4.36-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.02-2.41.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.41-.07.64.49.24.58.81 2 .88 2.15.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.72 1.19 1.55 1.93 1.06.95 1.96 1.24 2.24 1.38.28.14.44.12.6-.07.16-.19.68-.79.87-1.06.19-.28.37-.23.62-.14.26.09 1.63.77 1.91.91.28.14.47.21.54.33.07.12.07.68-.17 1.36Z"/></svg>
                   </a>
                 </div>
+                <Link
+                  href={`/surprise?productId=${product.id}`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem', marginTop: '.8rem', padding: '.65rem', border: '1px dashed #C99A54', borderRadius: '2rem', background: '#F7EAC8', color: '#2B2019', textDecoration: 'none', fontSize: '.8rem', transition: 'all .2s ease' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F3E0A8'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#F7EAC8'}
+                >
+                  🔒 Send this as a scheduled surprise reveal
+                </Link>
+
+                {sent && !loggedToTimeline && (
+                  <div style={{ marginTop: '.8rem', padding: '.9rem 1rem', background: 'white', border: '1px dashed #E4D3BE', borderRadius: '14px' }}>
+                    <p style={{ fontSize: '.8rem', color: '#2B2019', marginBottom: '.6rem' }}>📖 Who was this gift for? (adds it to your Gift Timeline)</p>
+                    <div style={{ display: 'flex', gap: '.5rem' }}>
+                      <input
+                        value={logPersonName}
+                        onChange={e => setLogPersonName(e.target.value)}
+                        placeholder="e.g. Mom, Priya, Rohan..."
+                        style={{ flex: 1, padding: '.5rem .8rem', border: '1px solid #E4D3BE', borderRadius: '10px', fontSize: '.82rem', outline: 'none' }}
+                      />
+                      <button
+                        onClick={handleLogGift}
+                        disabled={!logPersonName}
+                        style={{ padding: '.5rem 1.1rem', background: logPersonName ? '#2B2019' : '#D9C6B8', color: 'white', border: 'none', borderRadius: '10px', fontSize: '.8rem', cursor: logPersonName ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {loggedToTimeline && (
+                  <p style={{ marginTop: '.8rem', fontSize: '.8rem', color: '#4A6B3C' }}>
+                    ✓ Added to <Link href="/timeline" style={{ color: '#4A6B3C', textDecoration: 'underline' }}>{logPersonName}&apos;s timeline</Link>
+                  </p>
+                )}
               </div>
 
               {product.creators && (

@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 export default function Login() {
   const router = useRouter()
   const [mode, setMode] = useState('login') // 'login' | 'signup'
+  const [accountType, setAccountType] = useState('buyer') // 'buyer' | 'creator'
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,17 +36,18 @@ export default function Login() {
         const { data, error: signupError } = await supabase.auth.signUp({
           email,
           password,
+          options: { data: { full_name: name, account_type: accountType } },
         })
         if (signupError) throw signupError
 
-        // Create a blank creator row linked to this new user
-        if (data.user) {
+        // Only buyers who choose "creator" get a blank creator row to fill in later
+        if (data.user && accountType === 'creator') {
           await fetch('/api/creators', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               user_id: data.user.id,
-              name: '',
+              name,
               shop_name: '',
               is_active: false,
             })
@@ -54,13 +57,16 @@ export default function Login() {
         setMessage('Account created! Check your email to confirm, then log in.')
         setMode('login')
       } else {
-        const { error: loginError } = await supabase.auth.signInWithPassword({
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (loginError) throw loginError
 
-        router.push('/dashboard')
+        // Send creators straight to their dashboard; everyone else back to GiftSoul
+        const res = await fetch(`/api/creators?user_id=${data.user.id}`)
+        const creatorData = await res.json()
+        router.push(creatorData.creator ? '/dashboard' : '/')
       }
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
@@ -77,7 +83,7 @@ export default function Login() {
             Gift<em style={{ fontStyle: 'italic', color: '#B5533C' }}>Soul</em>
           </Link>
           <p style={{ fontSize: '.85rem', color: '#7C6B60', marginTop: '.5rem' }}>
-            {mode === 'login' ? 'Log in to your creator dashboard' : 'Create your creator account'}
+            {mode === 'login' ? 'Log in to your GiftSoul account' : 'Create your GiftSoul account'}
           </p>
         </div>
 
@@ -108,6 +114,39 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit}>
+            {mode === 'signup' && (
+              <>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '13px', color: '#7C6B60', display: 'block', marginBottom: '.5rem' }}>I'm signing up as a...</label>
+                  <div style={{ display: 'flex', gap: '.6rem' }}>
+                    {[['buyer', '🎁 Buyer'], ['creator', '🧵 Creator']].map(([val, label]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => setAccountType(val)}
+                        style={{
+                          flex: 1, padding: '.6rem', borderRadius: '10px', fontSize: '.85rem', cursor: 'pointer',
+                          border: accountType === val ? '1px solid #B5533C' : '1px solid #E4D3BE',
+                          background: accountType === val ? '#F9EAE6' : 'white',
+                          color: accountType === val ? '#B5533C' : '#7C6B60',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '13px', color: '#7C6B60', display: 'block', marginBottom: '.4rem' }}>Your name</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Full name"
+                    style={{ width: '100%', padding: '.65rem 1rem', border: '1px solid #E4D3BE', borderRadius: '8px', fontFamily: 'DM Sans, sans-serif', fontSize: '.9rem' }}
+                  />
+                </div>
+              </>
+            )}
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ fontSize: '13px', color: '#7C6B60', display: 'block', marginBottom: '.4rem' }}>Email</label>
               <input

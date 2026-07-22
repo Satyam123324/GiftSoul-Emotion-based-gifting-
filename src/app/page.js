@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { CATEGORIES, RECIPIENTS } from './lib/constants'
+import { getRemindersSorted } from './lib/reminders'
+import AccountMenu from './components/AccountMenu'
 
 const EMOTIONS = [
   'love', 'grief', 'celebration', 'gratitude', 'nostalgia',
@@ -114,6 +116,15 @@ function HeroDecorativePanel() {
 export default function Home() {
   const [story, setStory] = useState('')
   const [showResult, setShowResult] = useState(false)
+  const [upcomingReminder, setUpcomingReminder] = useState(null)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+
+  useEffect(() => {
+    const sorted = getRemindersSorted()
+    if (sorted.length > 0 && sorted[0].daysAway <= 30) {
+      setUpcomingReminder(sorted[0])
+    }
+  }, [])
   const [activeEmotion, setActiveEmotion] = useState('love')
   const heroRef = useRef(null)
 
@@ -150,19 +161,53 @@ export default function Home() {
           <Link href="/" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '1.65rem', fontWeight: 400, color: '#2B2019', textDecoration: 'none' }}>
             Gift<em style={{ fontStyle: 'italic', color: '#B5533C' }}>Soul</em>
           </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
-            {[['Browse gifts', '/marketplace'], ['By emotion', '/marketplace'], ['Creators', '/creators'], ['Corporate', '/corporate'], ['Wall of moments', '/stories']].map(([label, href]) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2.2rem' }}>
+            {[['Browse gifts', '/marketplace'], ['Find a gift (AI)', '/find-gift'], ['Creators', '/creators']].map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', color: '#7C6B60', textDecoration: 'none', transition: 'color .2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#B5533C'}
                 onMouseLeave={e => e.currentTarget.style.color = '#7C6B60'}>
                 {label}
               </Link>
             ))}
+
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: '.3rem', fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', color: moreMenuOpen ? '#B5533C' : '#7C6B60', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+              >
+                More <span style={{ fontSize: '.7rem', transform: moreMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>▾</span>
+              </button>
+              {moreMenuOpen && (
+                <>
+                  <div onClick={() => setMoreMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 900 }} />
+                  <div style={{ position: 'absolute', top: 'calc(100% + .8rem)', right: 0, background: 'white', border: '1px solid #E4D3BE', borderRadius: '14px', boxShadow: '0 12px 32px rgba(43,32,25,.12)', minWidth: '210px', padding: '.5rem', zIndex: 901 }}>
+                    {[
+                      ['🪞 Wall of moments', '/stories'],
+                      ['🧬 Gift DNA', '/gift-dna'],
+                      ['🧵 Following', '/following'],
+                      ['📅 Reminders', '/reminders'],
+                      ['📖 Gift timeline', '/timeline'],
+                      ['🏢 Corporate gifting', '/corporate'],
+                      ['❓ Help / FAQ', '/faq'],
+                    ].map(([label, href]) => (
+                      <Link key={href} href={href} onClick={() => setMoreMenuOpen(false)}
+                        style={{ display: 'block', padding: '.65rem .8rem', borderRadius: '8px', fontSize: '.83rem', color: '#2B2019', textDecoration: 'none', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#F3E8DC'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        {label}
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             <Link href="/wishlist" style={{ fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', color: '#7C6B60', textDecoration: 'none', transition: 'color .2s' }}
               onMouseEnter={e => e.currentTarget.style.color = '#B5533C'}
               onMouseLeave={e => e.currentTarget.style.color = '#7C6B60'}>
               ♡ Saved
             </Link>
+            <AccountMenu />
             <Link href="/creator-register" style={{ padding: '.5rem 1.4rem', background: '#2B2019', color: '#FBF7F2', borderRadius: '2rem', fontSize: '.78rem', letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', transition: 'background .2s' }}
               onMouseEnter={e => e.currentTarget.style.background = '#B5533C'}
               onMouseLeave={e => e.currentTarget.style.background = '#2B2019'}>
@@ -177,6 +222,15 @@ export default function Home() {
 
         {/* Left — story input */}
         <div style={{ padding: 'calc(70px + 5rem + 34px) 4rem 5rem 5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+
+          {upcomingReminder && (
+            <Link href={`/reminders`} style={{ display: 'inline-flex', alignItems: 'center', gap: '.6rem', alignSelf: 'flex-start', marginBottom: '1.6rem', padding: '.55rem 1.1rem', background: '#F7EAC8', border: '1px solid rgba(201,154,84,.4)', borderRadius: '2rem', textDecoration: 'none', animation: 'fadeUp .6s 0s both' }}>
+              <span style={{ fontSize: '.9rem' }}>📅</span>
+              <span style={{ fontSize: '.8rem', color: '#2B2019' }}>
+                <strong>{upcomingReminder.personName}</strong>&apos;s {upcomingReminder.occasion} is in {upcomingReminder.daysAway} day{upcomingReminder.daysAway !== 1 ? 's' : ''} — find a gift →
+              </span>
+            </Link>
+          )}
 
           <p style={{ fontSize: '.72rem', letterSpacing: '.18em', textTransform: 'uppercase', color: '#B5533C', marginBottom: '1.6rem', animation: 'fadeUp .6s .1s both' }}>
             Emotion-based gifting · Made in India

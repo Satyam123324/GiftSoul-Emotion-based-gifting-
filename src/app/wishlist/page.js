@@ -2,22 +2,26 @@
 export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { getWishlist, toggleWishlist } from '../lib/wishlist'
+import { getWishlist, toggleWishlist, getWishlistDB, toggleWishlistDB } from '../lib/wishlist'
+import { useAuth } from '../lib/useAuth'
 
 export default function Wishlist() {
+  const { user, loading: authLoading } = useAuth()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (authLoading) return
     loadWishlistedProducts()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user])
 
   async function loadWishlistedProducts() {
     setLoading(true)
     setError('')
     try {
-      const ids = getWishlist()
+      const ids = user ? await getWishlistDB(user.id) : getWishlist()
       if (ids.length === 0) {
         setProducts([])
         setLoading(false)
@@ -37,8 +41,12 @@ export default function Wishlist() {
     }
   }
 
-  function handleRemove(id) {
-    toggleWishlist(id)
+  async function handleRemove(id) {
+    if (user) {
+      await toggleWishlistDB(user.id, id)
+    } else {
+      toggleWishlist(id)
+    }
     setProducts(prev => prev.filter(p => p.id !== id))
   }
 

@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CATEGORIES, categoryLabel, RECIPIENTS } from '../lib/constants'
 import { getWishlist, getRecentlyViewed } from '../lib/wishlist'
+import AccountMenu from '../components/AccountMenu'
 
 const EMOTIONS = ['all', 'love', 'gratitude', 'celebration', 'comfort', 'self-care']
 const OCCASIONS = ['all', 'birthday', 'anniversary', 'wedding', 'babyshower', 'graduation', 'housewarming', 'diwali', 'rakhi', 'karva-chauth', 'eid', 'christmas', 'new-year']
@@ -110,6 +111,7 @@ function MarketplaceInner() {
           <Link href="/wishlist" style={{ fontSize: '.78rem', letterSpacing: '.12em', textTransform: 'uppercase', color: '#7C6B60', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '.35rem' }}>
             ♡ Saved{wishlistCount > 0 && <span style={{ background: '#B5533C', color: 'white', borderRadius: '999px', fontSize: '.65rem', padding: '.05rem .4rem', fontWeight: 600 }}>{wishlistCount}</span>}
           </Link>
+          <AccountMenu />
           <Link href="/creator-register" style={{ padding: '.5rem 1.4rem', background: '#2B2019', color: '#FBF7F2', borderRadius: '2rem', fontSize: '.78rem', textDecoration: 'none' }}>Join as creator</Link>
         </div>
         <button className="gs-nav-burger" onClick={() => setMenuOpen(true)} aria-label="Open menu" style={{ display: 'none', width: '40px', height: '40px', flexDirection: 'column', gap: '5px', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer' }}>
