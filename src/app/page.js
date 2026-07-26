@@ -182,6 +182,7 @@ export default function Home() {
                   <div onClick={() => setMoreMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 900 }} />
                   <div style={{ position: 'absolute', top: 'calc(100% + .8rem)', right: 0, background: 'white', border: '1px solid #E4D3BE', borderRadius: '14px', boxShadow: '0 12px 32px rgba(43,32,25,.12)', minWidth: '210px', padding: '.5rem', zIndex: 901 }}>
                     {[
+                      ['👥 Split a gift', '/group-gift'],
                       ['🪞 Wall of moments', '/stories'],
                       ['🧬 Gift DNA', '/gift-dna'],
                       ['🧵 Following', '/following'],

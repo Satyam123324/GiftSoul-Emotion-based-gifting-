@@ -56,6 +56,7 @@ export default function AccountMenu() {
               <div style={{ fontSize: '.72rem', color: '#7C6B60', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</div>
             </div>
             {[
+              ['🧾 My orders', '/orders'],
               ['♡ Saved gifts', '/wishlist'],
               ['🧵 Following', '/following'],
               ['📖 Gift timeline', '/timeline'],

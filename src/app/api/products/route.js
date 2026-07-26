@@ -11,21 +11,43 @@ export async function GET(request) {
     const emotion = searchParams.get('emotion')
     const creatorId = searchParams.get('creator_id')
 
-    let query = supabase
-      .from('products')
-      .select(`*, creators(name, shop_name, city, instagram_link), reviews(rating)`)
-      .eq('is_published', true)
+    // Build the query with a given select shape. The reviews join is optional:
+    // if that table hasn't been created yet, we retry without it rather than
+    // failing the entire marketplace over a missing extra.
+    function buildQuery(selectShape) {
+      let q = supabase
+        .from('products')
+        .select(selectShape)
+        .eq('is_published', true)
 
-    if (emotion && emotion !== 'all') {
-      query = query.contains('emotion_tags', [emotion])
+      if (emotion && emotion !== 'all') {
+        q = q.contains('emotion_tags', [emotion])
+      }
+      if (creatorId) {
+        q = q.eq('creator_id', creatorId)
+      }
+      return q.order('created_at', { ascending: false })
     }
-    if (creatorId) {
-      query = query.eq('creator_id', creatorId)
+
+    const withReviews = `*, creators(name, shop_name, city, instagram_link), reviews(rating)`
+    const withoutReviews = `*, creators(name, shop_name, city, instagram_link)`
+
+    let { data, error } = await buildQuery(withReviews)
+
+    if (error) {
+      // PostgREST reports a missing relationship (not a missing table) here,
+      // so match on that wording instead of an error code.
+      const missingReviewsTable =
+        /relationship/i.test(error.message || '') && /reviews/i.test(error.message || '')
+
+      if (!missingReviewsTable) throw error
+
+      const retry = await buildQuery(withoutReviews)
+      if (retry.error) throw retry.error
+      // Normalise the shape so the UI's `p.reviews?.length` checks still work.
+      data = (retry.data || []).map(p => ({ ...p, reviews: [] }))
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false })
-
-    if (error) throw error
     return Response.json({ products: data })
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 })

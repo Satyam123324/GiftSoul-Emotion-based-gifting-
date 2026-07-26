@@ -27,6 +27,10 @@ export default function ProductDetail({ params }) {
   const [sent, setSent] = useState(false)
   const [sendError, setSendError] = useState('')
 
+  const [paying, setPaying] = useState(false)
+  const [paid, setPaid] = useState(false)
+  const [payError, setPayError] = useState('')
+
   const [logPersonName, setLogPersonName] = useState('')
   const [loggedToTimeline, setLoggedToTimeline] = useState(false)
 
@@ -195,6 +199,113 @@ export default function ProductDetail({ params }) {
     }
   }
 
+  function loadRazorpayScript() {
+    return new Promise(resolve => {
+      if (window.Razorpay) return resolve(true)
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  async function handlePayNow() {
+    if (!buyerName || !buyerEmail) {
+      setPayError('Please add your name and email before paying.')
+      return
+    }
+    setPayError('')
+    setPaying(true)
+
+    try {
+      const scriptLoaded = await loadRazorpayScript()
+      if (!scriptLoaded) {
+        setPayError('Could not load the payment window. Check your connection and try again.')
+        setPaying(false)
+        return
+      }
+
+      const orderRes = await fetch('/api/checkout/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id,
+          quantity: qty,
+          buyerName,
+          buyerEmail,
+          buyerPhone,
+          personalisationNote: note,
+          userId: user?.id || null,
+        }),
+      })
+      const orderData = await orderRes.json()
+      if (orderData.error) {
+        setPayError(orderData.error)
+        setPaying(false)
+        return
+      }
+
+      const rzp = new window.Razorpay({
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'GiftSoul',
+        description: orderData.productName,
+        order_id: orderData.razorpayOrderId,
+        prefill: { name: buyerName, email: buyerEmail, contact: buyerPhone || '' },
+        theme: { color: '#B5533C' },
+        handler: async function (response) {
+          try {
+            const verifyRes = await fetch('/api/checkout/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                dbOrderId: orderData.dbOrderId,
+              }),
+            })
+            const verifyData = await verifyRes.json()
+            if (verifyData.success) {
+              setPaid(true)
+              // A real payment is a real gift given — log it automatically.
+              addGiftLogEntry({
+                personName: logPersonName || 'Someone special',
+                productId: product.id,
+                productName: product.name,
+                productImage: product.images?.[0] || null,
+                price: product.base_price,
+              })
+            } else {
+              setPayError('Payment could not be verified. If money was deducted, contact support.')
+            }
+          } catch (e) {
+            setPayError('Payment succeeded but verification failed. If money was deducted, contact support.')
+          } finally {
+            setPaying(false)
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPaying(false)
+          },
+        },
+      })
+
+      rzp.on('payment.failed', function () {
+        setPayError('Payment failed or was cancelled. No amount was charged.')
+        setPaying(false)
+      })
+
+      rzp.open()
+    } catch (e) {
+      setPayError('Could not start checkout right now, please try again.')
+      setPaying(false)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#FBF7F2' }}>
 
@@ -308,7 +419,7 @@ export default function ProductDetail({ params }) {
                   <div style={{ fontSize: '.78rem', color: '#7C6B60' }}>Ready in <strong style={{ color: '#2B2019' }}>{product.lead_time_days || 5} working days</strong></div>
                 </div>
 
-                {!sent && (
+                {!sent && !paid && (
                   <>
                     <textarea
                       value={note}
@@ -344,18 +455,41 @@ export default function ProductDetail({ params }) {
                   </>
                 )}
 
+                {payError && (
+                  <div style={{ fontSize: '.8rem', color: '#B5533C', marginBottom: '.8rem' }}>{payError}</div>
+                )}
+
+                {paid ? (
+                  <div style={{ background: '#EAF3E1', border: '1px solid rgba(74,107,60,.3)', borderRadius: '14px', padding: '1rem', textAlign: 'center', marginBottom: '.8rem' }}>
+                    <p style={{ fontSize: '.9rem', color: '#2B2019', fontWeight: 500, marginBottom: '.2rem' }}>✓ Payment successful!</p>
+                    <p style={{ fontSize: '.78rem', color: '#4A6B3C' }}>Your order is confirmed. The creator has been notified.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '.8rem', flexWrap: 'wrap', marginBottom: '.8rem' }}>
+                    <button
+                      onClick={handlePayNow}
+                      disabled={paying}
+                      style={{ flex: 1, minWidth: '160px', padding: '.8rem', background: '#2B2019', color: 'white', border: 'none', borderRadius: '2rem', fontSize: '.85rem', cursor: 'pointer', fontWeight: 500, opacity: paying ? .7 : 1 }}
+                    >
+                      {paying ? 'Opening payment...' : `Pay now — ₹${(product.base_price * qty).toLocaleString('en-IN')}`}
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '.8rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={sendEnquiry}
-                    disabled={sending || sent}
-                    style={{ flex: 1, minWidth: '160px', padding: '.75rem', background: '#B5533C', color: 'white', border: 'none', borderRadius: '2rem', fontSize: '.85rem', cursor: sent ? 'default' : 'pointer', fontWeight: 500, opacity: sending ? .7 : 1, transition: 'background .2s ease, transform .15s ease' }}
-                    onMouseEnter={e => { if (!sending && !sent) e.currentTarget.style.background = '#9A4230' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#B5533C' }}
-                    onMouseDown={e => { if (!sending && !sent) e.currentTarget.style.transform = 'scale(.97)' }}
-                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
-                  >
-                    {sent ? '✓ Enquiry sent!' : sending ? 'Sending...' : 'Send enquiry to creator'}
-                  </button>
+                  {!paid && (
+                    <button
+                      onClick={sendEnquiry}
+                      disabled={sending || sent}
+                      style={{ flex: 1, minWidth: '160px', padding: '.75rem', background: '#B5533C', color: 'white', border: 'none', borderRadius: '2rem', fontSize: '.85rem', cursor: sent ? 'default' : 'pointer', fontWeight: 500, opacity: sending ? .7 : 1, transition: 'background .2s ease, transform .15s ease' }}
+                      onMouseEnter={e => { if (!sending && !sent) e.currentTarget.style.background = '#9A4230' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#B5533C' }}
+                      onMouseDown={e => { if (!sending && !sent) e.currentTarget.style.transform = 'scale(.97)' }}
+                      onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)' }}
+                    >
+                      {sent ? '✓ Enquiry sent!' : sending ? 'Sending...' : 'Ask before you buy'}
+                    </button>
+                  )}
                   <button
                     onClick={handleToggleSave}
                     style={{ padding: '.75rem 1.2rem', border: saved ? '1px solid #B5533C' : '1px solid #E4D3BE', borderRadius: '2rem', background: 'white', cursor: 'pointer', fontSize: '.85rem', color: saved ? '#B5533C' : '#7C6B60', transition: 'all .2s ease' }}
@@ -383,6 +517,15 @@ export default function ProductDetail({ params }) {
                   onMouseLeave={e => e.currentTarget.style.background = '#F7EAC8'}
                 >
                   🔒 Send this as a scheduled surprise reveal
+                </Link>
+
+                <Link
+                  href={`/group-gift?productId=${product.id}`}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '.5rem', marginTop: '.6rem', padding: '.65rem', border: '1px dashed #4A6B3C', borderRadius: '2rem', background: '#EAF3E1', color: '#2B2019', textDecoration: 'none', fontSize: '.8rem', transition: 'all .2s ease' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#DCEBCE'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#EAF3E1'}
+                >
+                  👥 Split this gift with friends
                 </Link>
 
                 {sent && !loggedToTimeline && (

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ImageUpload from '../components/ImageUpload'
 import { useRequireAuth } from '../lib/useRequireAuth'
 import { supabase } from '../lib/supabase'
@@ -8,6 +8,15 @@ import { CATEGORIES, EMOTIONS, OCCASIONS, RECIPIENTS } from '../lib/constants'
 
 export default function Dashboard() {
   const { user, loading: authLoading } = useRequireAuth()
+  const [creatorProfile, setCreatorProfile] = useState(null)
+
+  useEffect(() => {
+    if (!user) return
+    fetch(`/api/creators?user_id=${user.id}`)
+      .then(res => res.json())
+      .then(data => setCreatorProfile(data.creator || null))
+      .catch(() => {})
+  }, [user])
 
   const [activeTab, setActiveTab] = useState('overview')
   const [toggles, setToggles] = useState({ candle: true, rose: true, gift: false })
@@ -35,6 +44,18 @@ export default function Dashboard() {
     { name: 'Anika Singh', city: 'Bengaluru', msg: 'Custom order for a baby shower, 10 units', product: 'Gift set (3 pack)', status: 'replied', date: '4 days ago' },
   ]
 
+  const [orders, setOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+
+  useEffect(() => {
+    if (!creatorProfile?.id) return
+    fetch(`/api/orders?creator_id=${creatorProfile.id}`)
+      .then(res => res.json())
+      .then(data => setOrders(data.orders || []))
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false))
+  }, [creatorProfile])
+
   const [products, setProducts] = useState([
     { icon: '🕯️', bg: '#F3E8DC', name: 'Lavender soy candle', price: '₹480', sales: 22, views: 340, key: 'candle', images: [], product_type: 'handmade' },
     { icon: '🌸', bg: '#EAF3E1', name: 'Rose & chamomile candle', price: '₹520', sales: 18, views: 210, key: 'rose', images: [], product_type: 'handmade' },
@@ -43,6 +64,7 @@ export default function Dashboard() {
 
   const sidebarItems = [
     { id: 'overview', label: '📊 Dashboard' },
+    { id: 'orders', label: '💳 Orders', badge: orders.length || undefined },
     { id: 'enquiries', label: '✉️ Enquiries', badge: 3 },
     { id: 'products', label: '🎁 My products' },
     { id: 'profile', label: '👤 Edit profile' },
@@ -71,6 +93,7 @@ export default function Dashboard() {
           occasion_tags: newProduct.occasion_tags,
           recipient_tags: newProduct.recipient_tags,
           lead_time_days: parseInt(newProduct.lead_time_days, 10) || 5,
+          creator_id: creatorProfile?.id || null,
         })
       })
       const data = await res.json()
@@ -212,6 +235,49 @@ export default function Dashboard() {
         )}
 
         {/* ENQUIRIES */}
+        {activeTab === 'orders' && (
+          <div>
+            <p style={{ fontSize: '.72rem', letterSpacing: '.18em', textTransform: 'uppercase', color: '#B5533C', marginBottom: '.5rem' }}>Real, paid orders</p>
+            <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2.5rem', fontWeight: 400, color: '#2B2019', marginBottom: '2rem' }}>Your <em style={{ color: '#B5533C' }}>orders</em></h1>
+
+            {!creatorProfile && (
+              <p style={{ fontSize: '.85rem', color: '#7C6B60' }}>Complete your creator profile to start receiving orders.</p>
+            )}
+
+            {creatorProfile && ordersLoading && (
+              <p style={{ fontSize: '.85rem', color: '#7C6B60' }}>Loading orders...</p>
+            )}
+
+            {creatorProfile && !ordersLoading && orders.length === 0 && (
+              <div style={{ background: 'white', border: '1px solid #E4D3BE', borderRadius: '20px', padding: '2.5rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '.8rem' }}>💳</div>
+                <p style={{ fontSize: '.9rem', color: '#2B2019' }}>No paid orders yet.</p>
+                <p style={{ fontSize: '.8rem', color: '#7C6B60', marginTop: '.3rem' }}>Once a buyer completes checkout for one of your gifts, it'll show up here.</p>
+              </div>
+            )}
+
+            {creatorProfile && !ordersLoading && orders.length > 0 && (
+              <div style={{ background: 'white', border: '1px solid #E4D3BE', borderRadius: '20px', padding: '1.5rem' }}>
+                {orders.map((o, i) => (
+                  <div key={o.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '1rem', alignItems: 'center', padding: '.9rem 0', borderBottom: i < orders.length - 1 ? '1px solid #E4D3BE' : 'none' }}>
+                    <div>
+                      <div style={{ fontSize: '.88rem', fontWeight: 500, color: '#2B2019' }}>{o.buyer_name}</div>
+                      <div style={{ fontSize: '.78rem', color: '#7C6B60', marginTop: '.1rem' }}>{o.products?.name || 'Gift'} · Qty {o.quantity}</div>
+                      {o.personalisation_note && (
+                        <div style={{ fontSize: '.75rem', color: '#C99A54', fontStyle: 'italic', marginTop: '.1rem' }}>&quot;{o.personalisation_note}&quot;</div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '.7rem', color: '#7C6B60', whiteSpace: 'nowrap' }}>
+                      {new Date(o.paid_at || o.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </span>
+                    <span style={{ fontSize: '.9rem', fontWeight: 500, color: '#2B2019', whiteSpace: 'nowrap' }}>₹{(o.amount / 100).toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'enquiries' && (
           <div>
             <p style={{ fontSize: '.72rem', letterSpacing: '.18em', textTransform: 'uppercase', color: '#B5533C', marginBottom: '.5rem' }}>Inbox</p>
