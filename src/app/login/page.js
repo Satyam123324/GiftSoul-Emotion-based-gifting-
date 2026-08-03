@@ -28,6 +28,10 @@ export default function Login() {
       setError('Password must be at least 6 characters.')
       return
     }
+    if (mode === 'signup' && !name.trim()) {
+      setError('Please enter your name.')
+      return
+    }
 
     setLoading(true)
 
@@ -79,7 +83,7 @@ export default function Login() {
     <div style={{ minHeight: '100vh', background: '#FBF7F2', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <Link href="/" style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2rem', fontWeight: 400, color: '#2B2019', textDecoration: 'none' }}>
+          <Link href="/" style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2rem', fontWeight: 400, color: '#2B2019', textDecoration: 'none' }}>
             Gift<em style={{ fontStyle: 'italic', color: '#B5533C' }}>Soul</em>
           </Link>
           <p style={{ fontSize: '.85rem', color: '#7C6B60', marginTop: '.5rem' }}>

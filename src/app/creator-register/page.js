@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import ImageUpload from '../components/ImageUpload'
+import { supabase } from '../lib/supabase'
 
 const STEPS = ['Identity', 'Craft', 'Story', 'Preview']
 const CRAFTS = ['Candles', 'Jewellery', 'Pottery', 'Macramé', 'Greeting cards', 'Gift hampers', 'Paintings', 'Crochet & knit', 'Resin art', 'Skincare', 'Stationery', 'Personalised gifts']
@@ -24,18 +25,39 @@ export default function CreatorRegister() {
     setSubmitting(true)
     setSubmitError('')
     try {
+      // A creator profile must be linked to a logged-in account, otherwise the
+      // dashboard and post-login redirect (which look creators up by user_id)
+      // can never find it.
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setSubmitError('Please log in or sign up as a creator first, then complete your profile.')
+        setSubmitting(false)
+        return
+      }
+
+      const payload = {
+        user_id: user.id,
+        name: `${form.fname} ${form.lname}`.trim(),
+        shop_name: form.shop,
+        bio: form.bio,
+        city: form.city,
+        craft_tags: form.crafts,
+        emotion_tags: form.emotions,
+        instagram: form.instagram,
+        photo_url: form.photo_url || null,
+      }
+
+      // Signing up as a creator already created a blank row for this user, so
+      // update it (PATCH) instead of inserting a duplicate. If no row exists
+      // yet (e.g. a buyer converting to a creator), create one (POST).
+      const existingRes = await fetch(`/api/creators?user_id=${user.id}`)
+      const existing = await existingRes.json()
+      const method = existing.creator ? 'PATCH' : 'POST'
+
       const res = await fetch('/api/creators', {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${form.fname} ${form.lname}`.trim(),
-          shop_name: form.shop,
-          bio: form.bio,
-          city: form.city,
-          craft_tags: form.crafts,
-          emotion_tags: form.emotions,
-          instagram: form.instagram,
-        })
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (data.error) {
