@@ -4,6 +4,21 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
+// Turn raw Supabase auth errors into guidance a person can act on.
+function friendlyAuthError(message = '') {
+  const m = message.toLowerCase()
+  if (m.includes('email not confirmed')) {
+    return 'Please confirm your email first — check your inbox (and spam) for the confirmation link, then log in.'
+  }
+  if (m.includes('invalid login credentials')) {
+    return "Wrong email or password. If you just signed up, you may still need to confirm your email before logging in."
+  }
+  if (m.includes('already registered') || m.includes('already exists')) {
+    return 'An account with this email already exists. Try logging in instead.'
+  }
+  return message || 'Something went wrong. Please try again.'
+}
+
 export default function Login() {
   const router = useRouter()
   const [mode, setMode] = useState('login') // 'login' | 'signup'
@@ -73,7 +88,7 @@ export default function Login() {
         router.push(creatorData.creator ? '/dashboard' : '/')
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.')
+      setError(friendlyAuthError(err.message))
     } finally {
       setLoading(false)
     }

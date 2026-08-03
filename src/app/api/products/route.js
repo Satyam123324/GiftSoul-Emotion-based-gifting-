@@ -29,8 +29,8 @@ export async function GET(request) {
       return q.order('created_at', { ascending: false })
     }
 
-    const withReviews = `*, creators(name, shop_name, city, instagram_link), reviews(rating)`
-    const withoutReviews = `*, creators(name, shop_name, city, instagram_link)`
+    const withReviews = `*, creators(name, shop_name, city, instagram), reviews(rating)`
+    const withoutReviews = `*, creators(name, shop_name, city, instagram)`
 
     let { data, error } = await buildQuery(withReviews)
 

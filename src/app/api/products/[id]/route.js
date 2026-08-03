@@ -11,7 +11,7 @@ export async function GET(request, { params }) {
 
     const { data, error } = await supabase
       .from('products')
-      .select(`*, creators(id, name, shop_name, city, instagram_link)`)
+      .select(`*, creators(id, name, shop_name, city, instagram)`)
       .eq('id', id)
       .single()
 
