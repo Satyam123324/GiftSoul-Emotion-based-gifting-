@@ -55,22 +55,64 @@ export default function Login() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [needsConfirm, setNeedsConfirm] = useState(false)
+  const [recoveryMode, setRecoveryMode] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
 
-  // Already signed in? Skip the form and route onward.
   useEffect(() => {
     let active = true
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!active || !data.session) return
+
+    // Password-reset links land back here carrying a recovery token. Show the
+    // "set a new password" form instead of redirecting the user away.
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const search = typeof window !== 'undefined' ? window.location.search : ''
+    const isRecovery = hash.includes('type=recovery') || search.includes('type=recovery')
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
+    })
+
+    if (isRecovery) {
+      setRecoveryMode(true)
+    } else {
+      // Already signed in? Skip the form and route onward.
+      supabase.auth.getSession().then(async ({ data }) => {
+        if (!active || !data.session) return
+        try {
+          const res = await fetch(`/api/creators?user_id=${data.session.user.id}`)
+          const cd = await res.json()
+          router.replace(cd.creator ? '/dashboard' : '/')
+        } catch {
+          router.replace('/')
+        }
+      })
+    }
+
+    return () => { active = false; sub.subscription.unsubscribe() }
+  }, [router])
+
+  async function handleUpdatePassword(e) {
+    e.preventDefault()
+    setError(''); setMessage('')
+    if (newPassword.length < 6) { setError('Password must be at least 6 characters.'); return }
+    setLoading(true)
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateError) throw updateError
+      // Clear the recovery token from the URL, then take them into the app.
+      if (typeof window !== 'undefined') window.history.replaceState(null, '', '/login')
+      const { data: { user } } = await supabase.auth.getUser()
       try {
-        const res = await fetch(`/api/creators?user_id=${data.session.user.id}`)
+        const res = await fetch(`/api/creators?user_id=${user.id}`)
         const cd = await res.json()
         router.replace(cd.creator ? '/dashboard' : '/')
       } catch {
         router.replace('/')
       }
-    })
-    return () => { active = false }
-  }, [router])
+    } catch (err) {
+      setError(friendlyAuthError(err.message))
+      setLoading(false)
+    }
+  }
 
   function switchMode(next) {
     setMode(next); setError(''); setMessage(''); setNeedsConfirm(false)
@@ -175,6 +217,51 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Password-recovery screen (shown after clicking a reset link).
+  if (recoveryMode) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#FBF7F2 0%,#F5ECE1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <style>{`@keyframes gs-spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: '100%', maxWidth: '420px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+            <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '2.1rem', fontWeight: 400, color: '#2B2019' }}>
+              Gift<em style={{ fontStyle: 'italic', color: '#B5533C' }}>Soul</em>
+            </span>
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '.88rem', color: '#7C6B60', marginTop: '.5rem' }}>Choose a new password</p>
+          </div>
+          <div style={{ background: 'white', border: '1px solid #E4D3BE', borderRadius: '20px', padding: '2rem', boxShadow: '0 10px 30px -18px rgba(43,32,25,.35)' }}>
+            <form onSubmit={handleUpdatePassword}>
+              <label htmlFor="gs-newpass" style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '13px', color: '#7C6B60', display: 'block', marginBottom: '.4rem' }}>New password</label>
+              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+                <input
+                  id="gs-newpass"
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  autoComplete="new-password"
+                  style={{ width: '100%', padding: '.7rem 3.5rem .7rem 1rem', border: '1px solid #E4D3BE', borderRadius: '10px', fontFamily: 'DM Sans, sans-serif', fontSize: '.9rem', color: '#2B2019', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button type="button" onClick={() => setShowPassword(s => !s)} style={{ position: 'absolute', right: '.85rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontSize: '.75rem', color: '#B5533C', fontWeight: 500 }}>
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              {error && (
+                <div style={{ background: '#F9EAE6', border: '1px solid rgba(181,83,60,.3)', borderRadius: '10px', padding: '.8rem 1rem', marginBottom: '1rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.82rem', color: '#B5533C' }}>{error}</div>
+              )}
+              {message && (
+                <div style={{ background: '#EAF3E1', border: '1px solid rgba(74,107,60,.3)', borderRadius: '10px', padding: '.8rem 1rem', marginBottom: '1rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.82rem', color: '#4A6B3C' }}>{message}</div>
+              )}
+              <button type="submit" disabled={loading} style={{ width: '100%', padding: '.8rem', background: '#B5533C', color: 'white', border: 'none', borderRadius: '2rem', fontFamily: 'DM Sans, sans-serif', fontSize: '.92rem', fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.85 : 1 }}>
+                {loading ? 'Updating…' : 'Update password'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const busy = loading || googleLoading
