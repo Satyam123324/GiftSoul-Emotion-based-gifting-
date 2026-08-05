@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# GiftSoul — Emotion-based gifting platform
 
-## Getting Started
+GiftSoul is an AI-powered gifting marketplace connecting buyers with handmade
+creators across India. Users share a heartfelt story, and the app recommends
+gifts matched to the emotion, occasion, and recipient — then supports checkout,
+group gifting, wishlists, and creator stories.
 
-First, run the development server:
+Built with **Next.js (App Router)**, **React**, **Supabase** (auth + database +
+storage), **Groq** (LLaMA-based AI gift matching), and **Razorpay** (payments).
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Full configuration — environment keys, database SQL, Supabase auth, and payments —
+is documented in **[SETUP.md](./SETUP.md)**. A project health map lives in
+**[PROJECT-HEALTH.md](./PROJECT-HEALTH.md)**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment
 
-## Learn More
+Copy `.env.local.example` to `.env.local` and fill in the six keys (Supabase URL,
+anon key, service-role key, Groq key, and two Razorpay keys). See SETUP.md.
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run the SQL files in `scripts/` once in the Supabase SQL Editor (creates tables
+and row-level-security policies), then optionally seed a catalog:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+node scripts/seed-products.js
+```
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app` — pages (App Router) and API routes
+- `src/app/api` — server routes for products, creators, orders, pools, enquiries, AI suggestions
+- `src/app/lib` — Supabase clients, auth hooks, shared taxonomy
+- `scripts` — database setup SQL and the product seeder
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Recent changes
+
+- Added a full password-reset flow (recovery link → set-new-password screen).
+- Professionalized login/signup: Google sign-in, forgot password, resend
+  confirmation, show/hide password, inline validation, and clearer error messages.
+- Fixed creator registration to link profiles to the logged-in user (no more
+  duplicate/orphaned rows) and to save the uploaded profile photo.
+- Fixed an `instagram` column mismatch in product queries.
+- Added missing table SQL (`enquiries`, `gift_requests`) and RLS-fix scripts for
+  `creators` and `products`, plus an `.env.local.example` template.
+- Cleaned out dead files, boilerplate, and an unused dependency.
